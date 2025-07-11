@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Poll Results</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Poll Results</h1>
+  <div id="pollResults"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const pollId = params.get('id');
+
+    if (!pollId) {
+      document.getElementById('pollResults').innerHTML = '<p>No poll ID provided.</p>';
+    } else {
+      fetch(`/polls/${pollId}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Poll not found');
+          return res.json();
+        })
+        .then(poll => {
+          document.getElementById('pollResults').innerHTML = `
+            <h2>${poll.question}</h2>
+            <canvas id="chart" width="400" height="200"></canvas>
+          `;
+          drawChart(poll.options);
+        })
+        .catch(err => {
+          document.getElementById('pollResults').innerHTML = `<p>Error: ${err.message}</p>`;
+        });
+    }
+
+    function drawChart(options) {
+      const ctx = document.getElementById('chart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(options),
+          datasets: [{
+            label: 'Votes',
+            data: Object.values(options),
+            backgroundColor: 'rgba(75, 192, 192, 0.6)'
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

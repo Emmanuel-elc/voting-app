@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Voting App</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Voting App</h1>
+
+  <!-- Admin Login -->
+  <div id="loginSection">
+    <h2>Admin Login</h2>
+    <form id="loginForm">
+      <input type="password" id="adminPassword" placeholder="Enter admin password" required />
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <!-- Admin Section -->
+  <div id="adminSection" class="hidden">
+    <h2>Create a New Poll</h2>
+    <form id="createPollForm">
+      <input type="text" id="newQuestion" placeholder="Poll question" required />
+      <textarea id="newOptions" rows="3" placeholder="Enter options separated by commas" required></textarea>
+      <label for="expiryDate">Expiry Date (optional)</label>
+      <input type="datetime-local" id="expiryDate" />
+      <button type="submit">Create Poll</button>
+    </form>
+    <button id="logoutBtn" class="logout-btn">Logout</button>
+  </div>
+
+  <hr />
+  <h2>Available Polls</h2>
+  <label>
+    <input type="checkbox" id="showExpiredToggle" />
+    Show expired polls
+  </label>
+  <ul id="pollList"></ul>
+  <hr />
+  <div id="pollContainer"></div>
+
+  <script>
+    let isAdmin = false;
+
+    // Login handling
+    document.getElementById('loginForm').onsubmit = (e) => {
+      e.preventDefault();
+      const pass = document.getElementById('adminPassword').value;
+      if (pass === 'admin123') {
+        isAdmin = true;
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('adminSection').classList.remove('hidden');
+        loadPolls();
+      } else {
+        alert('Wrong password');
+      }
+    };
+
+    document.getElementById('logoutBtn').onclick = () => {
+      isAdmin = false;
+      document.getElementById('adminSection').classList.add('hidden');
+      document.getElementById('loginSection').classList.remove('hidden');
+      alert('Logged out');
+      loadPolls();
+    };
+
+    // Poll creation
+    document.getElementById('createPollForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const question = document.getElementById('newQuestion').value;
+      const optionsText = document.getElementById('newOptions').value;
+      const expiryDate = document.getElementById('expiryDate').value;
+
+      const optionsArray = optionsText.split(',').map(opt => opt.trim());
+      const options = {};
+      optionsArray.forEach(opt => options[opt] = 0);
+
+      const payload = {
+        question,
+        options,
+        expiresAt: expiryDate ? new Date(expiryDate).toISOString() : null
+      };
+
+      const res = await fetch('/polls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        alert('Poll created');
+        document.getElementById('createPollForm').reset();
+        loadPolls();
+      } else {
+        alert('Failed to create poll');
+      }
+    };
+
+    // Local storage vote tracking
+    function hasVoted(pollId) {
+      const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
+      return voted.includes(pollId);
+    }
+
+    function recordVote(pollId) {
+      const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
+      if (!voted.includes(pollId)) {
+        voted.push(pollId);
+        localStorage.setItem('votedPolls', JSON.stringify(voted));
+      }
+    }
+
+    // Load polls
+    document.getElementById('showExpiredToggle').addEventListener('change', loadPolls);
+
+    async function loadPolls() {
+      const showExpired = document.getElementById('showExpiredToggle').checked;
+      const res = await fetch(`/polls${showExpired ? '?expired=true' : ''}`);
+      const polls = await res.json();
+      const list = document.getElementById('pollList');
+      list.innerHTML = '';
+
+      if (polls.length === 0) {
+        list.innerHTML = '<li>No polls available.</li>';
+        return;
+      }
+
+      polls.forEach(poll => {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = poll.question;
+        link.onclick = (e) => {
+          e.preventDefault();
+          renderPoll(poll);
+        };
+        li.appendChild(link);
+
+        // Expiry label
+        if (poll.expiresAt) {
+          const exp = new Date(poll.expiresAt).toLocaleString();
+          li.innerHTML += ` <small>(expires at ${exp})</small>`;
+        }
+
+        // 📊 View Results Button
+        const resultsBtn = document.createElement('button');
+        resultsBtn.textContent = '📊 View Results';
+        resultsBtn.className = 'results-btn';
+        resultsBtn.onclick = () => {
+          window.open(`results.html?id=${poll.id}`, '_blank');
+        };
+        li.appendChild(resultsBtn);
+
+        // Admin controls
+        if (isAdmin) {
+          const editBtn = document.createElement('button');
+          editBtn.textContent = '✏️ Edit';
+          editBtn.className = 'edit-btn';
+          editBtn.onclick = () => openEditForm(poll);
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.textContent = '🗑️ Delete';
+          deleteBtn.className = 'delete-btn';
+          deleteBtn.onclick = async () => {
+            if (!confirm('Delete this poll?')) return;
+            const res = await fetch(`/polls/${poll.id}`, { method: 'DELETE' });
+            if (res.ok) {
+              alert('Poll deleted');
+              loadPolls();
+              document.getElementById('pollContainer').innerHTML = '';
+            } else {
+              alert('Failed to delete');
+            }
+          };
+
+          li.appendChild(editBtn);
+          li.appendChild(deleteBtn);
+        }
+
+        list.appendChild(li);
+      });
+    }
+
+    function renderPoll(poll) {
+      const container = document.getElementById('pollContainer');
+      const alreadyVoted = hasVoted(poll.id);
+      let html = `<h3>${poll.question}</h3>`;
+
+      if (alreadyVoted) {
+        html += `<p><strong>You already voted on this poll.</strong></p>`;
+      } else {
+        html += `
+          <form id="voteForm">
+            ${Object.keys(poll.options).map(opt => `
+              <label><input type="radio" name="option" value="${opt}" /> ${opt}</label><br/>
+            `).join('')}
+            <button type="submit">Vote</button>
+          </form>
+        `;
+      }
+
+      html += `<canvas id="resultsChart" width="400" height="200"></canvas>`;
+      container.innerHTML = html;
+      drawChart(poll.options);
+
+      if (!alreadyVoted) {
+        document.getElementById('voteForm').onsubmit = async (e) => {
+          e.preventDefault();
+          const option = document.querySelector('input[name="option"]:checked')?.value;
+          if (!option) return alert('Please select an option');
+
+          const res = await fetch(`/polls/${poll.id}/vote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ option })
+          });
+
+          if (res.ok) {
+            const updated = await res.json();
+            recordVote(poll.id);
+            alert('Vote recorded!');
+            renderPoll(updated.poll);
+          } else {
+            const err = await res.json();
+            alert(err.error || 'Failed to vote');
+          }
+        };
+      }
+    }
+
+    function drawChart(options) {
+      const ctx = document.getElementById('resultsChart').getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+      window.myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(options),
+          datasets: [{
+            label: 'Votes',
+            data: Object.values(options),
+            backgroundColor: 'rgba(54, 162, 235, 0.6)'
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    // Placeholder function for poll editing (optional)
+    function openEditForm(poll) {
+      alert('Editing not implemented yet.');
+    }
+
+    window.onload = loadPolls;
+  </script>
+</body>
+</html>

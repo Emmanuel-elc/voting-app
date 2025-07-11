@@ -1,0 +1,216 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f9f9f9;
+}
+input, button {
+  margin: 5px 0;
+  padding: 5px;
+}
+form, div {
+  margin-bottom: 20px;
+}
+button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+button:hover {
+  background: #0056b3;
+}
+
+#adminSection {
+  display: none;
+}
+
+button.delete-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+button.edit-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+/* Add any styles from your <style> block here too */
+/* Visibility Helpers */
+.hidden {
+  display: none;
+}
+.visible {
+  display: block;
+}
+
+/* Basic Layout */
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f2f2f2;
+}
+
+h1 {
+  color: #333;
+}
+
+/* Form & Input Styles */
+form {
+  margin-bottom: 20px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="datetime-local"],
+textarea {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* Button Styles */
+button {
+  padding: 8px 16px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.logout-btn {
+  margin-top: 10px;
+  background-color: #dc3545;
+}
+
+.logout-btn:hover {
+  background-color: #a71d2a;
+}
+
+.edit-btn,
+.delete-btn {
+  margin-left: 10px;
+  font-size: 0.9em;
+  background-color: #6c757d;
+}
+
+.edit-btn:hover,
+.delete-btn:hover {
+  background-color: #5a6268;
+}
+
+/* Poll List */
+ul#pollList li {
+  margin-bottom: 10px;
+}
+
+/* Canvas Chart */
+canvas {
+  margin-top: 20px;
+}
+.results-btn {
+  margin-left: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background-color: #f7f9fc;
+  color: #333;
+}
+
+h1 {
+  color: #0077cc;
+}
+
+form {
+  margin-bottom: 20px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="datetime-local"],
+textarea {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #0077cc;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+button:hover {
+  background-color: #005fa3;
+}
+
+.logout-btn {
+  background-color: #d9534f;
+}
+
+.logout-btn:hover {
+  background-color: #c9302c;
+}
+
+#pollList li {
+  margin-bottom: 12px;
+}
+
+canvas {
+  margin-top: 20px;
+}
+
+.hidden {
+  display: none;
+}
+
+.edit-btn {
+  background-color: #f0ad4e;
+}
+
+.edit-btn:hover {
+  background-color: #ec971f;
+}
+
+.delete-btn {
+  background-color: #d9534f;
+}
+
+.delete-btn:hover {
+  background-color: #c9302c;
+}
+
+.results-btn {
+  background-color: #5cb85c;
+}
+
+.results-btn:hover {
+  background-color: #449d44;
+}
