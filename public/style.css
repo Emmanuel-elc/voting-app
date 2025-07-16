@@ -214,3 +214,94 @@ canvas {
 .results-btn:hover {
   background-color: #449d44;
 }
+body {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f9f9f9;
+  color: #333;
+}
+
+h1, h2, h3 {
+  color: #004080;
+}
+
+input, textarea, button {
+  font-size: 1rem;
+  margin: 5px 0;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+form {
+  margin-bottom: 20px;
+}
+
+button {
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #004d99;
+}
+
+.logout-btn {
+  background-color: #999;
+}
+
+.logout-btn:hover {
+  background-color: #666;
+}
+
+.edit-btn {
+  background-color: #ffc107;
+  color: black;
+}
+
+.edit-btn:hover {
+  background-color: #e0a800;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+}
+
+.delete-btn:hover {
+  background-color: #b52a37;
+}
+
+.results-btn {
+  background-color: #28a745;
+}
+
+.results-btn:hover {
+  background-color: #1e7e34;
+}
+
+#pollList li {
+  margin-bottom: 10px;
+}
+
+canvas {
+  margin-top: 20px;
+  background: white;
+  border: 1px solid #ddd;
+  padding: 10px;
+}
+
+.hidden {
+  display: none;
+}
+
+#editFormContainer {
+  background: #eef2f5;
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-top: 20px;
+}
