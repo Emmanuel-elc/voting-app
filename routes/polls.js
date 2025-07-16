@@ -7,10 +7,11 @@ const dataPath = path.join(__dirname, '../pollsData.json');
 
 function loadPolls() {
   if (!fs.existsSync(dataPath)) return [];
-  const raw = fs.readFileSync(dataPath, 'utf-8');
-  if (!raw.trim()) return [];
-  return JSON.parse(raw);
+  const raw = fs.readFileSync(dataPath);
+  return raw.length ? JSON.parse(raw) : [];
 }
+
+
 
 function savePolls(data) {
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
