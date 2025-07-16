@@ -33,6 +33,22 @@ app.post('/login', (req, res) => {
 
   res.json({ username: user.username, role: user.role });
 });
+// User registration
+app.post('/register', (req, res) => {
+  const { username, password } = req.body;
+  const users = JSON.parse(fs.readFileSync(usersPath));
+
+  const existing = users.find(u => u.username === username);
+  if (existing) {
+    return res.status(400).json({ error: 'Username already exists' });
+  }
+
+  const newUser = { username, password, role: 'user' };
+  users.push(newUser);
+  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+
+  res.json({ username, role: 'user' });
+});
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

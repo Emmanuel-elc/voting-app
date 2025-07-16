@@ -1,5 +1,4 @@
 [
   { "username": "admin", "password": "admin123", "role": "admin" },
-  { "username": "emma", "password": "emma123", "role": "user" },
-  { "username": "joy", "password": "joypass", "role": "user" }
+  { "username": "emma", "password": "emma123", "role": "user" }
 ]
