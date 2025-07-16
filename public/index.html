@@ -1,13 +1,21 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Trigger change for GitHub Desktop -->
-
   <meta charset="UTF-8" />
   <title>Voting App</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .hidden { display: none; }
+    .edit-btn, .delete-btn, .results-btn {
+      margin-left: 10px;
+    }
+    #editFormContainer {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
   <h1>Voting App</h1>
@@ -31,7 +39,7 @@
       <input type="datetime-local" id="expiryDate" />
       <button type="submit">Create Poll</button>
     </form>
-    <button id="logoutBtn" class="logout-btn">Logout</button>
+    <button id="logoutBtn">Logout</button>
   </div>
 
   <hr />
@@ -44,10 +52,21 @@
   <hr />
   <div id="pollContainer"></div>
 
+  <!-- Edit Poll Form -->
+  <div id="editFormContainer" class="hidden">
+    <h3>Edit Poll</h3>
+    <form id="editPollForm">
+      <input type="text" id="editQuestion" required />
+      <textarea id="editOptions" rows="3" required></textarea>
+      <input type="hidden" id="editPollId" />
+      <button type="submit">Save Changes</button>
+      <button type="button" onclick="closeEditForm()">Cancel</button>
+    </form>
+  </div>
+
   <script>
     let isAdmin = false;
 
-    // Login handling
     document.getElementById('loginForm').onsubmit = (e) => {
       e.preventDefault();
       const pass = document.getElementById('adminPassword').value;
@@ -69,7 +88,6 @@
       loadPolls();
     };
 
-    // Poll creation
     document.getElementById('createPollForm').onsubmit = async (e) => {
       e.preventDefault();
       const question = document.getElementById('newQuestion').value;
@@ -101,7 +119,8 @@
       }
     };
 
-    // Local storage vote tracking
+    document.getElementById('showExpiredToggle').addEventListener('change', loadPolls);
+
     function hasVoted(pollId) {
       const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
       return voted.includes(pollId);
@@ -114,9 +133,6 @@
         localStorage.setItem('votedPolls', JSON.stringify(voted));
       }
     }
-
-    // Load polls
-    document.getElementById('showExpiredToggle').addEventListener('change', loadPolls);
 
     async function loadPolls() {
       const showExpired = document.getElementById('showExpiredToggle').checked;
@@ -141,13 +157,11 @@
         };
         li.appendChild(link);
 
-        // Expiry label
         if (poll.expiresAt) {
           const exp = new Date(poll.expiresAt).toLocaleString();
           li.innerHTML += ` <small>(expires at ${exp})</small>`;
         }
 
-        // 📊 View Results Button
         const resultsBtn = document.createElement('button');
         resultsBtn.textContent = '📊 View Results';
         resultsBtn.className = 'results-btn';
@@ -156,7 +170,6 @@
         };
         li.appendChild(resultsBtn);
 
-        // Admin controls
         if (isAdmin) {
           const editBtn = document.createElement('button');
           editBtn.textContent = '✏️ Edit';
@@ -254,10 +267,40 @@
       });
     }
 
-    // Placeholder function for poll editing (optional)
     function openEditForm(poll) {
-      alert('Editing not implemented yet.');
+      document.getElementById('editFormContainer').classList.remove('hidden');
+      document.getElementById('editPollId').value = poll.id;
+      document.getElementById('editQuestion').value = poll.question;
+      document.getElementById('editOptions').value = Object.keys(poll.options).join(', ');
     }
+
+    function closeEditForm() {
+      document.getElementById('editFormContainer').classList.add('hidden');
+    }
+
+    document.getElementById('editPollForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('editPollId').value;
+      const question = document.getElementById('editQuestion').value;
+      const optionsText = document.getElementById('editOptions').value;
+      const optionsArray = optionsText.split(',').map(opt => opt.trim());
+      const options = {};
+      optionsArray.forEach(opt => options[opt] = 0);
+
+      const res = await fetch(`/polls/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, options })
+      });
+
+      if (res.ok) {
+        alert('Poll updated');
+        closeEditForm();
+        loadPolls();
+      } else {
+        alert('Failed to update poll');
+      }
+    };
 
     window.onload = loadPolls;
   </script>
