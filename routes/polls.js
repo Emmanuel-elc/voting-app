@@ -5,14 +5,14 @@ const path = require('path');
 
 const dataPath = path.join(__dirname, '../pollsData.json');
 
-// Load polls from JSON
+// Load polls
 function loadPolls() {
   if (!fs.existsSync(dataPath)) return [];
   const raw = fs.readFileSync(dataPath);
   return raw.length ? JSON.parse(raw) : [];
 }
 
-// Save polls to JSON
+// Save polls
 function savePolls(data) {
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
 }
@@ -20,8 +20,6 @@ function savePolls(data) {
 // Get all polls
 router.get('/', (req, res) => {
   const polls = loadPolls();
-
-  // Optional query to include expired polls
   const showExpired = req.query.expired === 'true';
   const now = Date.now();
 
@@ -32,7 +30,7 @@ router.get('/', (req, res) => {
   res.json(filtered);
 });
 
-// Create a new poll
+// Create new poll
 router.post('/', (req, res) => {
   const polls = loadPolls();
   const { question, options, expiresAt } = req.body;
@@ -63,9 +61,18 @@ router.post('/:id/vote', (req, res) => {
   const polls = loadPolls();
   const poll = polls.find(p => p.id == req.params.id);
   const option = req.body.option;
+  const now = Date.now();
 
-  if (!poll || !poll.options[option]) {
-    return res.status(400).json({ error: 'Invalid poll or option' });
+  if (!poll) {
+    return res.status(404).json({ error: 'Poll not found' });
+  }
+
+  if (poll.expiresAt && new Date(poll.expiresAt).getTime() <= now) {
+    return res.status(400).json({ error: 'Poll has expired' });
+  }
+
+  if (!(option in poll.options)) {
+    return res.status(400).json({ error: 'Invalid option' });
   }
 
   poll.options[option]++;
@@ -73,7 +80,7 @@ router.post('/:id/vote', (req, res) => {
   res.json({ message: 'Vote recorded', poll });
 });
 
-// Update poll (admin-only)
+// Update a poll (admin-only)
 router.patch('/:id', (req, res) => {
   const polls = loadPolls();
   const poll = polls.find(p => p.id == req.params.id);
@@ -89,7 +96,7 @@ router.patch('/:id', (req, res) => {
   res.json({ message: 'Poll updated', poll });
 });
 
-// Delete poll (admin-only)
+// Delete a poll (admin-only)
 router.delete('/:id', (req, res) => {
   let polls = loadPolls();
   const index = polls.findIndex(p => p.id == req.params.id);
