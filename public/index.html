@@ -5,17 +5,6 @@
   <title>Voting App</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    .hidden { display: none; }
-    .edit-btn, .delete-btn, .results-btn {
-      margin-left: 10px;
-    }
-    #editFormContainer {
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-top: 20px;
-    }
-  </style>
 </head>
 <body>
   <h1>Voting App</h1>
@@ -52,7 +41,7 @@
   <hr />
   <div id="pollContainer"></div>
 
-  <!-- Edit Poll Form -->
+  <!-- Edit Form -->
   <div id="editFormContainer" class="hidden">
     <h3>Edit Poll</h3>
     <form id="editPollForm">
@@ -121,21 +110,9 @@
 
     document.getElementById('showExpiredToggle').addEventListener('change', loadPolls);
 
-    function hasVoted(pollId) {
-      const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
-      return voted.includes(pollId);
-    }
-
-    function recordVote(pollId) {
-      const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
-      if (!voted.includes(pollId)) {
-        voted.push(pollId);
-        localStorage.setItem('votedPolls', JSON.stringify(voted));
-      }
-    }
-
     async function loadPolls() {
       const showExpired = document.getElementById('showExpiredToggle').checked;
+
       const res = await fetch(`/polls${showExpired ? '?expired=true' : ''}`);
       const polls = await res.json();
       const list = document.getElementById('pollList');
@@ -202,9 +179,12 @@
     function renderPoll(poll) {
       const container = document.getElementById('pollContainer');
       const alreadyVoted = hasVoted(poll.id);
+      const isExpired = poll.expiresAt && new Date(poll.expiresAt).getTime() <= Date.now();
       let html = `<h3>${poll.question}</h3>`;
 
-      if (alreadyVoted) {
+      if (isExpired) {
+        html += `<p><strong>This poll has expired. Voting is closed.</strong></p>`;
+      } else if (alreadyVoted) {
         html += `<p><strong>You already voted on this poll.</strong></p>`;
       } else {
         html += `
@@ -221,7 +201,7 @@
       container.innerHTML = html;
       drawChart(poll.options);
 
-      if (!alreadyVoted) {
+      if (!alreadyVoted && !isExpired) {
         document.getElementById('voteForm').onsubmit = async (e) => {
           e.preventDefault();
           const option = document.querySelector('input[name="option"]:checked')?.value;
@@ -268,40 +248,52 @@
     }
 
     function openEditForm(poll) {
-  document.getElementById('editFormContainer').classList.remove('hidden');
-  document.getElementById('editPollId').value = poll.id;
-  document.getElementById('editQuestion').value = poll.question;
-  document.getElementById('editOptions').value = Object.keys(poll.options).join(', ');
-}
-
+      document.getElementById('editFormContainer').classList.remove('hidden');
+      document.getElementById('editPollId').value = poll.id;
+      document.getElementById('editQuestion').value = poll.question;
+      document.getElementById('editOptions').value = Object.keys(poll.options).join(', ');
+    }
 
     function closeEditForm() {
       document.getElementById('editFormContainer').classList.add('hidden');
     }
 
     document.getElementById('editPollForm').onsubmit = async (e) => {
-  e.preventDefault();
-  const id = document.getElementById('editPollId').value;
-  const question = document.getElementById('editQuestion').value;
-  const optionsText = document.getElementById('editOptions').value;
-  const optionsArray = optionsText.split(',').map(opt => opt.trim());
-  const options = {};
-  optionsArray.forEach(opt => options[opt] = 0);
+      e.preventDefault();
+      const id = document.getElementById('editPollId').value;
+      const question = document.getElementById('editQuestion').value;
+      const optionsText = document.getElementById('editOptions').value;
+      const optionsArray = optionsText.split(',').map(opt => opt.trim());
+      const options = {};
+      optionsArray.forEach(opt => options[opt] = 0);
 
-  const res = await fetch(`/polls/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question, options })
-  });
+      const res = await fetch(`/polls/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, options })
+      });
 
-  if (res.ok) {
-    alert('Poll updated');
-    closeEditForm();
-    loadPolls();
-  } else {
-    alert('Failed to update poll');
-  }
-};
+      if (res.ok) {
+        alert('Poll updated');
+        closeEditForm();
+        loadPolls();
+      } else {
+        alert('Failed to update poll');
+      }
+    };
+
+    function hasVoted(pollId) {
+      const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
+      return voted.includes(pollId);
+    }
+
+    function recordVote(pollId) {
+      const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
+      if (!voted.includes(pollId)) {
+        voted.push(pollId);
+        localStorage.setItem('votedPolls', JSON.stringify(voted));
+      }
+    }
 
     window.onload = loadPolls;
   </script>
