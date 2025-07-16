@@ -5,33 +5,32 @@ const path = require('path');
 
 const dataPath = path.join(__dirname, '../pollsData.json');
 
+// Load polls from JSON
 function loadPolls() {
   if (!fs.existsSync(dataPath)) return [];
   const raw = fs.readFileSync(dataPath);
   return raw.length ? JSON.parse(raw) : [];
 }
 
-
-
+// Save polls to JSON
 function savePolls(data) {
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
 }
 
-// GET /polls — fetch all or only expired polls based on query
+// Get all polls
 router.get('/', (req, res) => {
   const polls = loadPolls();
-  const now = new Date();
-  const expiredOnly = req.query.expired === 'true';
 
-  const filtered = polls.filter(poll => {
-    if (!poll.expiresAt) return !expiredOnly; // No expiry, show only in active
-    const isExpired = new Date(poll.expiresAt) < now;
-    return expiredOnly ? isExpired : !isExpired;
-  });
+  // Optional query to include expired polls
+  const showExpired = req.query.expired === 'true';
+  const now = Date.now();
+
+  const filtered = showExpired
+    ? polls
+    : polls.filter(p => !p.expiresAt || new Date(p.expiresAt).getTime() > now);
 
   res.json(filtered);
 });
-
 
 // Create a new poll
 router.post('/', (req, res) => {
@@ -42,7 +41,6 @@ router.post('/', (req, res) => {
     id: Date.now(),
     question,
     options,
-    createdAt: new Date(),
     expiresAt: expiresAt || null
   };
 
@@ -51,24 +49,16 @@ router.post('/', (req, res) => {
   res.status(201).json(newPoll);
 });
 
-// Get single poll
-router.get('/', (req, res) => {
+// Get poll by ID
+router.get('/:id', (req, res) => {
   const polls = loadPolls();
-  const now = new Date();
+  const poll = polls.find(p => p.id == req.params.id);
 
-  const expiredOnly = req.query.expired === 'true';
-
-  const filtered = polls.filter(poll => {
-    if (!poll.expiresAt) return !expiredOnly;
-    const isExpired = new Date(poll.expiresAt) < now;
-    return expiredOnly ? isExpired : !isExpired;
-  });
-
-  res.json(filtered);
+  if (poll) res.json(poll);
+  else res.status(404).json({ error: 'Poll not found' });
 });
 
-
-// Vote
+// Vote on a poll
 router.post('/:id/vote', (req, res) => {
   const polls = loadPolls();
   const poll = polls.find(p => p.id == req.params.id);
@@ -78,38 +68,37 @@ router.post('/:id/vote', (req, res) => {
     return res.status(400).json({ error: 'Invalid poll or option' });
   }
 
-  if (poll.expiresAt && new Date(poll.expiresAt) < new Date()) {
-    return res.status(403).json({ error: 'Poll has expired' });
-  }
-
   poll.options[option]++;
   savePolls(polls);
   res.json({ message: 'Vote recorded', poll });
 });
 
-// Update poll
-router.put('/:id', (req, res) => {
+// Update poll (admin-only)
+router.patch('/:id', (req, res) => {
   const polls = loadPolls();
-  const index = polls.findIndex(p => p.id == req.params.id);
-  if (index === -1) return res.status(404).json({ error: 'Poll not found' });
+  const poll = polls.find(p => p.id == req.params.id);
 
-  const { question, options, expiresAt } = req.body;
-  polls[index].question = question;
-  polls[index].options = options;
-  polls[index].expiresAt = expiresAt || null;
-
-  savePolls(polls);
-  res.json({ message: 'Poll updated', poll: polls[index] });
-});
-
-// Delete poll
-router.delete('/:id', (req, res) => {
-  let polls = loadPolls();
-  const originalLength = polls.length;
-  polls = polls.filter(p => p.id != req.params.id);
-  if (polls.length === originalLength) {
+  if (!poll) {
     return res.status(404).json({ error: 'Poll not found' });
   }
+
+  if (req.body.question) poll.question = req.body.question;
+  if (req.body.options) poll.options = req.body.options;
+
+  savePolls(polls);
+  res.json({ message: 'Poll updated', poll });
+});
+
+// Delete poll (admin-only)
+router.delete('/:id', (req, res) => {
+  let polls = loadPolls();
+  const index = polls.findIndex(p => p.id == req.params.id);
+
+  if (index === -1) {
+    return res.status(404).json({ error: 'Poll not found' });
+  }
+
+  polls.splice(index, 1);
   savePolls(polls);
   res.json({ message: 'Poll deleted' });
 });
