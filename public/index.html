@@ -268,39 +268,40 @@
     }
 
     function openEditForm(poll) {
-      document.getElementById('editFormContainer').classList.remove('hidden');
-      document.getElementById('editPollId').value = poll.id;
-      document.getElementById('editQuestion').value = poll.question;
-      document.getElementById('editOptions').value = Object.keys(poll.options).join(', ');
-    }
+  document.getElementById('editFormContainer').classList.remove('hidden');
+  document.getElementById('editPollId').value = poll.id;
+  document.getElementById('editQuestion').value = poll.question;
+  document.getElementById('editOptions').value = Object.keys(poll.options).join(', ');
+}
+
 
     function closeEditForm() {
       document.getElementById('editFormContainer').classList.add('hidden');
     }
 
     document.getElementById('editPollForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('editPollId').value;
-      const question = document.getElementById('editQuestion').value;
-      const optionsText = document.getElementById('editOptions').value;
-      const optionsArray = optionsText.split(',').map(opt => opt.trim());
-      const options = {};
-      optionsArray.forEach(opt => options[opt] = 0);
+  e.preventDefault();
+  const id = document.getElementById('editPollId').value;
+  const question = document.getElementById('editQuestion').value;
+  const optionsText = document.getElementById('editOptions').value;
+  const optionsArray = optionsText.split(',').map(opt => opt.trim());
+  const options = {};
+  optionsArray.forEach(opt => options[opt] = 0);
 
-      const res = await fetch(`/polls/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, options })
-      });
+  const res = await fetch(`/polls/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, options })
+  });
 
-      if (res.ok) {
-        alert('Poll updated');
-        closeEditForm();
-        loadPolls();
-      } else {
-        alert('Failed to update poll');
-      }
-    };
+  if (res.ok) {
+    alert('Poll updated');
+    closeEditForm();
+    loadPolls();
+  } else {
+    alert('Failed to update poll');
+  }
+};
 
     window.onload = loadPolls;
   </script>
