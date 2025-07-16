@@ -9,13 +9,20 @@
 <body>
   <h1>Voting App</h1>
 
-  <!-- Admin Login -->
+  <!-- Login Section -->
   <div id="loginSection">
-    <h2>Admin Login</h2>
+    <h2>Login</h2>
     <form id="loginForm">
-      <input type="password" id="adminPassword" placeholder="Enter admin password" required />
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="password" id="password" placeholder="Password" required />
       <button type="submit">Login</button>
     </form>
+  </div>
+
+  <!-- Logged-In Info -->
+  <div id="userInfo" class="hidden">
+    <p>Welcome, <span id="currentUser"></span>!</p>
+    <button id="logoutBtn">Logout</button>
   </div>
 
   <!-- Admin Section -->
@@ -28,7 +35,6 @@
       <input type="datetime-local" id="expiryDate" />
       <button type="submit">Create Poll</button>
     </form>
-    <button id="logoutBtn">Logout</button>
   </div>
 
   <hr />
@@ -54,29 +60,51 @@
   </div>
 
   <script>
+    let currentUser = null;
     let isAdmin = false;
 
-    document.getElementById('loginForm').onsubmit = (e) => {
+    // Handle login
+    document.getElementById('loginForm').onsubmit = async (e) => {
       e.preventDefault();
-      const pass = document.getElementById('adminPassword').value;
-      if (pass === 'admin123') {
-        isAdmin = true;
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (res.ok) {
+        const user = await res.json();
+        currentUser = user.username;
+        isAdmin = user.role === 'admin';
+
         document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('adminSection').classList.remove('hidden');
+        document.getElementById('userInfo').classList.remove('hidden');
+        document.getElementById('currentUser').textContent = currentUser;
+
+        if (isAdmin) {
+          document.getElementById('adminSection').classList.remove('hidden');
+        }
+
         loadPolls();
       } else {
-        alert('Wrong password');
+        alert('Login failed. Check your credentials.');
       }
     };
 
+    // Handle logout
     document.getElementById('logoutBtn').onclick = () => {
+      currentUser = null;
       isAdmin = false;
-      document.getElementById('adminSection').classList.add('hidden');
       document.getElementById('loginSection').classList.remove('hidden');
-      alert('Logged out');
+      document.getElementById('userInfo').classList.add('hidden');
+      document.getElementById('adminSection').classList.add('hidden');
       loadPolls();
     };
 
+    // Create poll
     document.getElementById('createPollForm').onsubmit = async (e) => {
       e.preventDefault();
       const question = document.getElementById('newQuestion').value;
@@ -182,7 +210,9 @@
       const isExpired = poll.expiresAt && new Date(poll.expiresAt).getTime() <= Date.now();
       let html = `<h3>${poll.question}</h3>`;
 
-      if (isExpired) {
+      if (!currentUser) {
+        html += `<p><strong>You must log in to vote.</strong></p>`;
+      } else if (isExpired) {
         html += `<p><strong>This poll has expired. Voting is closed.</strong></p>`;
       } else if (alreadyVoted) {
         html += `<p><strong>You already voted on this poll.</strong></p>`;
@@ -201,7 +231,7 @@
       container.innerHTML = html;
       drawChart(poll.options);
 
-      if (!alreadyVoted && !isExpired) {
+      if (currentUser && !alreadyVoted && !isExpired) {
         document.getElementById('voteForm').onsubmit = async (e) => {
           e.preventDefault();
           const option = document.querySelector('input[name="option"]:checked')?.value;

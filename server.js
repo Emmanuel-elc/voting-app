@@ -18,6 +18,22 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+const fs = require('fs');
+const usersPath = path.join(__dirname, 'users.json');
+
+// User login
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const users = JSON.parse(fs.readFileSync(usersPath));
+  const user = users.find(u => u.username === username && u.password === password);
+
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  res.json({ username: user.username, role: user.role });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
