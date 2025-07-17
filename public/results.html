@@ -5,15 +5,30 @@
   <title>Poll Results (Admin Only)</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .btn-group {
+      margin-top: 20px;
+    }
+    .btn-group button {
+      margin-right: 10px;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <h1>Poll Results</h1>
   <p id="question"><em>Loading...</em></p>
   <canvas id="resultsChart" width="400" height="200"></canvas>
 
+  <div class="btn-group">
+    <button onclick="printResults()">🖨️ Print</button>
+    <button onclick="downloadImage()">⬇️ Download Chart</button>
+  </div>
+
   <script>
-    // Simulate admin check (you can improve this with real login later)
-    const isAdmin = true; // replace with your logic or secure auth if needed
+    const isAdmin = true; // Replace with secure logic in production
 
     if (!isAdmin) {
       alert("Access denied. Admins only.");
@@ -22,30 +37,31 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get("id");
+    let pollData = {};
 
     fetch(`/polls/${id}`, {
       headers: {
-        "x-admin-key": "admin123"  // Admin-only access
+        "x-admin-key": "admin123"
       }
     })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error("Poll not found or unauthorized access.");
-      }
-      return res.json();
-    })
-    .then(poll => {
-      document.getElementById("question").textContent = poll.question;
-      drawChart(poll.options);
-    })
-    .catch(err => {
-      alert(err.message);
-      document.getElementById("question").textContent = "Unable to load results.";
-    });
+      .then(res => {
+        if (!res.ok) throw new Error("Poll not found or unauthorized.");
+        return res.json();
+      })
+      .then(poll => {
+        pollData = poll;
+        document.getElementById("question").textContent = poll.question;
+        drawChart(poll.options);
+      })
+      .catch(err => {
+        alert(err.message);
+        document.getElementById("question").textContent = "Unable to load results.";
+      });
 
     function drawChart(options) {
       const ctx = document.getElementById("resultsChart").getContext("2d");
-      new Chart(ctx, {
+      if (window.resultsChart) window.resultsChart.destroy();
+      window.resultsChart = new Chart(ctx, {
         type: "bar",
         data: {
           labels: Object.keys(options),
@@ -57,12 +73,22 @@
         },
         options: {
           scales: {
-            y: {
-              beginAtZero: true
-            }
+            y: { beginAtZero: true }
           }
         }
       });
+    }
+
+    function printResults() {
+      window.print();
+    }
+
+    function downloadImage() {
+      const canvas = document.getElementById("resultsChart");
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${pollData.question.replace(/\s+/g, "_")}_results.png`;
+      link.click();
     }
   </script>
 </body>
