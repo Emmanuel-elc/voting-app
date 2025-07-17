@@ -1,4 +1,18 @@
+
 [
-  { "id": "1001", "name": "Alice", "password": "alice123" },
-  { "id": "1002", "name": "Bob", "password": "bob456" }
+  {
+    "id": "001",
+    "name": "Alice Johnson",
+    "password": "pass123"
+  },
+  {
+    "id": "002",
+    "name": "Bob Smith",
+    "password": "mypassword"
+  },
+  {
+    "id": "003",
+    "name": "Cathy Lee",
+    "password": "vote2025"
+  }
 ]
