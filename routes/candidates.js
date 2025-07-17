@@ -1,47 +1,58 @@
 const express = require('express');
-const path = require('path');
-const app = express();
-
-// Route imports
-const pollsRoute = require('./routes/polls');
-const authRoute = require('./routes/auth');  // ✅ Add this line
-
-app.use(express.json());
-
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Use route files
-app.use('/polls', pollsRoute);
-app.use('/auth', authRoute);  // ✅ Add this line
-
-// Serve index.html at root "/"
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
-
-const express = require('express');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 const router = express.Router();
 
-const candidatesFile = path.join(__dirname, '../data/candidates.json');
+const dataPath = path.join(__dirname, '..', 'data', 'candidates.json');
 
-// Load candidates
+// Helper to load candidates
 function loadCandidates() {
-  if (!fs.existsSync(candidatesFile)) return [];
-  return JSON.parse(fs.readFileSync(candidatesFile));
+  try {
+    const data = fs.readFileSync(dataPath, 'utf-8');
+    return JSON.parse(data);
+  } catch (err) {
+    return [];
+  }
 }
 
-// GET /candidates
+// Helper to save candidates
+function saveCandidates(candidates) {
+  fs.writeFileSync(dataPath, JSON.stringify(candidates, null, 2));
+}
+
+// GET all candidates
 router.get('/', (req, res) => {
   const candidates = loadCandidates();
   res.json(candidates);
+});
+
+// POST a new candidate
+router.post('/', (req, res) => {
+  const { name, photo } = req.body;
+  if (!name || !photo) {
+    return res.status(400).json({ error: 'Name and photo URL are required' });
+  }
+
+  const candidates = loadCandidates();
+  const newCandidate = {
+    id: Date.now().toString(),
+    name,
+    photo
+  };
+  candidates.push(newCandidate);
+  saveCandidates(candidates);
+  res.status(201).json(newCandidate);
+});
+
+// DELETE a candidate
+router.delete('/:id', (req, res) => {
+  const candidates = loadCandidates();
+  const updated = candidates.filter(c => c.id !== req.params.id);
+  if (updated.length === candidates.length) {
+    return res.status(404).json({ error: 'Candidate not found' });
+  }
+  saveCandidates(updated);
+  res.json({ message: 'Candidate deleted' });
 });
 
 module.exports = router;
