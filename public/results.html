@@ -2,147 +2,96 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Poll Results (Admin Only)</title>
+  <title>Poll Results - Admin Only</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <style>
-    .btn-group {
-      margin-top: 20px;
-    }
-    .btn-group button {
-      margin-right: 10px;
-      padding: 10px 20px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #metadata {
-      margin-top: 10px;
-      font-style: italic;
-      color: #555;
-    }
-  </style>
 </head>
 <body>
-  <h1>Poll Results</h1>
-  <p id="question"><em>Loading...</em></p>
-  <canvas id="resultsChart" width="400" height="200"></canvas>
-  <p id="totalVotes"></p>
-  <div id="metadata"></div>
+  <h1>📊 Poll Results</h1>
 
-  <div class="btn-group">
-    <button onclick="printResults()">🖨️ Print</button>
-    <button onclick="downloadImage()">⬇️ Download PNG</button>
-    <button onclick="downloadPDF()">📄 Download PDF</button>
-    <button onclick="downloadCSV()">📊 Download CSV</button>
+  <form id="adminAccessForm">
+    <input type="password" id="adminPassword" placeholder="Enter admin password" required />
+    <button type="submit">View Results</button>
+  </form>
+
+  <div id="resultsSection" class="hidden">
+    <button onclick="window.print()">🖨️ Print Results</button>
+    <button onclick="downloadCSV()">⬇️ Download CSV</button>
+    <div id="resultsList"></div>
   </div>
 
   <script>
-    const isAdmin = true; // Replace with secure logic
+    const form = document.getElementById('adminAccessForm');
+    const section = document.getElementById('resultsSection');
 
-    if (!isAdmin) {
-      alert("Access denied. Admins only.");
-      window.location.href = "/";
-    }
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const pass = document.getElementById('adminPassword').value;
+      if (pass !== 'admin123') return alert('Access denied');
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get("id");
-    let pollData = {};
+      const res = await fetch('/results-data');
+      const polls = await res.json();
+      section.classList.remove('hidden');
+      renderResults(polls);
+    };
 
-    fetch(`/polls/${id}`, {
-      headers: {
-        "x-admin-key": "admin123"
+    function renderResults(polls) {
+      const container = document.getElementById('resultsList');
+      container.innerHTML = '';
+
+      if (polls.length === 0) {
+        container.innerHTML = '<p>No polls found.</p>';
+        return;
       }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Poll not found or unauthorized.");
-        return res.json();
-      })
-      .then(poll => {
-        pollData = poll;
-        document.getElementById("question").textContent = poll.question;
-        const totalVotes = Object.values(poll.options).reduce((a, b) => a + b, 0);
-        document.getElementById("totalVotes").textContent = `🧮 Total Votes: ${totalVotes}`;
-        document.getElementById("metadata").textContent = `🕒 Generated on: ${new Date().toLocaleString()}`;
-        drawChart(poll.options);
-      })
-      .catch(err => {
-        alert(err.message);
-        document.getElementById("question").textContent = "Unable to load results.";
-      });
 
-    function drawChart(options) {
-      const ctx = document.getElementById("resultsChart").getContext("2d");
-      if (window.resultsChart) window.resultsChart.destroy();
-      window.resultsChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: Object.keys(options),
-          datasets: [{
-            label: "Votes",
-            data: Object.values(options),
-            backgroundColor: "rgba(75, 192, 192, 0.6)"
-          }]
-        },
-        options: {
-          scales: {
-            y: { beginAtZero: true }
+      polls.forEach(poll => {
+        const div = document.createElement('div');
+        div.className = 'poll-result';
+        div.innerHTML = `<h3>${poll.question}</h3><canvas id="chart-${poll.id}" width="400" height="200"></canvas>`;
+        container.appendChild(div);
+
+        const ctx = document.getElementById(`chart-${poll.id}`).getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(poll.options),
+            datasets: [{
+              label: 'Votes',
+              data: Object.values(poll.options),
+              backgroundColor: 'rgba(75, 192, 192, 0.6)'
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              title: {
+                display: true,
+                text: `Total Votes: ${Object.values(poll.options).reduce((a, b) => a + b, 0)}`
+              }
+            }
           }
-        }
+        });
       });
-    }
-
-    function printResults() {
-      window.print();
-    }
-
-    function downloadImage() {
-      const canvas = document.getElementById("resultsChart");
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = `${pollData.question.replace(/\s+/g, "_")}_results.png`;
-      link.click();
-    }
-
-    async function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-
-      pdf.setFontSize(16);
-      pdf.text(`Poll Results: ${pollData.question}`, 10, 10);
-      pdf.setFontSize(12);
-
-      const options = pollData.options;
-      const keys = Object.keys(options);
-      const values = Object.values(options);
-      const total = values.reduce((a, b) => a + b, 0);
-
-      keys.forEach((opt, i) => {
-        pdf.text(`${opt}: ${values[i]} votes`, 10, 20 + i * 10);
-      });
-
-      pdf.text(`Total Votes: ${total}`, 10, 30 + keys.length * 10);
-      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 10, 40 + keys.length * 10);
-
-      pdf.save(`${pollData.question.replace(/\s+/g, "_")}_results.pdf`);
     }
 
     function downloadCSV() {
-      const options = pollData.options;
-      let csv = "Option,Votes\n";
-      for (let [opt, val] of Object.entries(options)) {
-        csv += `"${opt}",${val}\n`;
-      }
+      fetch('/results-data')
+        .then(res => res.json())
+        .then(data => {
+          let csv = 'Poll Question,Option,Votes\n';
+          data.forEach(poll => {
+            for (let opt in poll.options) {
+              csv += `"${poll.question}","${opt}",${poll.options[opt]}\n`;
+            }
+          });
 
-      const total = Object.values(options).reduce((a, b) => a + b, 0);
-      csv += `"Total",${total}\n`;
-
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${pollData.question.replace(/\s+/g, "_")}_results.csv`;
-      link.click();
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = 'poll_results.csv';
+          link.click();
+        });
     }
   </script>
 </body>

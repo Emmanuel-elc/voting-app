@@ -21,6 +21,18 @@ app.use('/auth', authRoute); // ✅ USE HERE
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+// Serve results.html manually if not already served
+app.get('/results', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'results.html'));
+});
+const fs = require('fs');
+const pollsPath = path.join(__dirname, 'data', 'polls.json');
+
+app.get('/results-data', (req, res) => {
+  const polls = JSON.parse(fs.readFileSync(pollsPath));
+  res.json(polls);
+});
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
