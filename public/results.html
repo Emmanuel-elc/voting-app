@@ -5,6 +5,7 @@
   <title>Poll Results (Admin Only)</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     .btn-group {
       margin-top: 20px;
@@ -15,20 +16,29 @@
       font-weight: bold;
       cursor: pointer;
     }
+    #metadata {
+      margin-top: 10px;
+      font-style: italic;
+      color: #555;
+    }
   </style>
 </head>
 <body>
   <h1>Poll Results</h1>
   <p id="question"><em>Loading...</em></p>
   <canvas id="resultsChart" width="400" height="200"></canvas>
+  <p id="totalVotes"></p>
+  <div id="metadata"></div>
 
   <div class="btn-group">
     <button onclick="printResults()">🖨️ Print</button>
-    <button onclick="downloadImage()">⬇️ Download Chart</button>
+    <button onclick="downloadImage()">⬇️ Download PNG</button>
+    <button onclick="downloadPDF()">📄 Download PDF</button>
+    <button onclick="downloadCSV()">📊 Download CSV</button>
   </div>
 
   <script>
-    const isAdmin = true; // Replace with secure logic in production
+    const isAdmin = true; // Replace with secure logic
 
     if (!isAdmin) {
       alert("Access denied. Admins only.");
@@ -51,6 +61,9 @@
       .then(poll => {
         pollData = poll;
         document.getElementById("question").textContent = poll.question;
+        const totalVotes = Object.values(poll.options).reduce((a, b) => a + b, 0);
+        document.getElementById("totalVotes").textContent = `🧮 Total Votes: ${totalVotes}`;
+        document.getElementById("metadata").textContent = `🕒 Generated on: ${new Date().toLocaleString()}`;
         drawChart(poll.options);
       })
       .catch(err => {
@@ -88,6 +101,47 @@
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
       link.download = `${pollData.question.replace(/\s+/g, "_")}_results.png`;
+      link.click();
+    }
+
+    async function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+
+      pdf.setFontSize(16);
+      pdf.text(`Poll Results: ${pollData.question}`, 10, 10);
+      pdf.setFontSize(12);
+
+      const options = pollData.options;
+      const keys = Object.keys(options);
+      const values = Object.values(options);
+      const total = values.reduce((a, b) => a + b, 0);
+
+      keys.forEach((opt, i) => {
+        pdf.text(`${opt}: ${values[i]} votes`, 10, 20 + i * 10);
+      });
+
+      pdf.text(`Total Votes: ${total}`, 10, 30 + keys.length * 10);
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 10, 40 + keys.length * 10);
+
+      pdf.save(`${pollData.question.replace(/\s+/g, "_")}_results.pdf`);
+    }
+
+    function downloadCSV() {
+      const options = pollData.options;
+      let csv = "Option,Votes\n";
+      for (let [opt, val] of Object.entries(options)) {
+        csv += `"${opt}",${val}\n`;
+      }
+
+      const total = Object.values(options).reduce((a, b) => a + b, 0);
+      csv += `"Total",${total}\n`;
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${pollData.question.replace(/\s+/g, "_")}_results.csv`;
       link.click();
     }
   </script>
