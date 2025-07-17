@@ -1,22 +1,20 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const pollsRoute = require('./routes/polls');
+const authRoute = require('./routes/auth'); // ✅ ADD THIS LINE
+
 const app = express();
 
-const pollsRoute = require('./routes/polls');
-const authRoutes = require('./routes/auth');
-app.use('/auth', authRoutes);
-const candidatesRoute = require('./routes/candidates');
-
 app.use(express.json());
+
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Route middleware
+// API routes
 app.use('/polls', pollsRoute);
-app.use('/auth', authRoute);
-app.use('/candidates', candidatesRoute);
+app.use('/auth', authRoute); // ✅ USE HERE
 
-// Serve index.html
+// Root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
