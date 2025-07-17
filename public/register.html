@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register Voter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>🗳️ Admin Voter Registration</h1>
+
+  <form id="registerForm">
+    <input type="text" id="id" placeholder="Voter ID Number" required />
+    <input type="text" id="name" placeholder="Voter Name" required />
+    <input type="password" id="password" placeholder="Password" required />
+    <input type="password" id="adminKey" placeholder="Admin Password" required />
+    <button type="submit">Register Voter</button>
+  </form>
+
+  <p id="message"></p>
+
+  <script>
+    document.getElementById('registerForm').onsubmit = async (e) => {
+      e.preventDefault();
+
+      const payload = {
+        id: document.getElementById('id').value,
+        name: document.getElementById('name').value,
+        password: document.getElementById('password').value,
+        adminKey: document.getElementById('adminKey').value,
+      };
+
+      const res = await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const msg = document.getElementById('message');
+      const data = await res.json();
+      msg.textContent = data.message || data.error;
+    };
+  </script>
+</body>
+</html>

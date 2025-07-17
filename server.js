@@ -2,6 +2,9 @@ const express = require('express');
 const path = require('path');
 const pollsRoute = require('./routes/polls');
 const authRoute = require('./routes/auth'); // ✅ ADD THIS LINE
+const registerRoute = require('./routes/register');
+app.use('/register', registerRoute);
+
 
 const app = express();
 
