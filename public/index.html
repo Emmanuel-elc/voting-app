@@ -2,56 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Secure Voting App</title>
+  <title>Voting App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div id="welcomeSection">
-    <h1>Welcome to the Voting System</h1>
+  <h1>Voting App</h1>
+
+  <!-- Welcome + Login -->
+  <div id="loginPage">
+    <h2>Welcome to the Voting Platform</h2>
     <form id="loginForm">
-      <input type="text" id="userId" placeholder="Enter your ID" required />
-      <input type="password" id="userPassword" placeholder="Enter your password" required />
+      <input type="text" id="userId" placeholder="ID Number" required />
+      <input type="password" id="userPassword" placeholder="Password" required />
       <button type="submit">Login</button>
     </form>
   </div>
 
-  <div id="votingSection" class="hidden">
-    <h2 id="greeting"></h2>
+  <!-- User Voting Page -->
+  <div id="votingPage" class="hidden">
+    <h2 id="welcomeName"></h2>
     <div id="pollContainer"></div>
-    <button id="logoutBtn">Logout</button>
+    <button id="logoutUser">Logout</button>
+  </div>
+
+  <!-- Admin Section -->
+  <div id="adminPage" class="hidden">
+    <h2>Admin Panel</h2>
+    <form id="createPollForm">
+      <input type="text" id="newQuestion" placeholder="Poll question" required />
+      <textarea id="newOptions" placeholder="Options, separated by commas" required></textarea>
+      <button type="submit">Create Poll</button>
+    </form>
+    <ul id="pollList"></ul>
+    <button id="logoutAdmin">Logout</button>
   </div>
 
   <script>
     let currentUser = null;
 
-    document.getElementById('loginForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('userId').value;
-      const password = document.getElementById('userPassword').value;
-
+    async function fetchUser(id, password) {
       const res = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, password })
       });
-
-      const data = await res.json();
-      if (res.ok) {
-        currentUser = data.user;
-        document.getElementById('welcomeSection').classList.add('hidden');
-        document.getElementById('votingSection').classList.remove('hidden');
-        document.getElementById('greeting').textContent = `Welcome, ${currentUser.name}!`;
-        loadPoll();
-      } else {
-        alert(data.error || 'Login failed');
-      }
-    };
-
-    document.getElementById('logoutBtn').onclick = () => {
-      currentUser = null;
-      document.getElementById('votingSection').classList.add('hidden');
-      document.getElementById('welcomeSection').classList.remove('hidden');
-    };
+      return res.ok ? await res.json() : null;
+    }
 
     async function loadPoll() {
       const res = await fetch('/polls');
@@ -61,38 +59,115 @@
 
     function renderPoll(poll) {
       const container = document.getElementById('pollContainer');
+      if (!poll || !poll.question) {
+        container.innerHTML = '<p>No active poll available.</p>';
+        return;
+      }
+
       let html = `<h3>${poll.question}</h3><form id="voteForm">`;
-      for (const [option, imageUrl] of Object.entries(poll.options)) {
+
+      for (const [option, value] of Object.entries(poll.options)) {
+        const imageSrc = `images/${option.toLowerCase().replace(/ /g, '')}.jpg`; // assumes naming like alicebrownie.jpg
         html += `
-          <label>
+          <label style="display:block;margin-bottom:10px;">
             <input type="radio" name="option" value="${option}" />
-            <img src="${imageUrl}" alt="${option}" width="100" /><br />
+            <img src="${imageSrc}" alt="${option}" width="100" style="vertical-align:middle;" />
             ${option}
-          </label><br/>
+          </label>
         `;
       }
-      html += `<button type="submit">Submit Vote</button></form>`;
+
+      html += `<button type="submit">Vote</button></form>`;
       container.innerHTML = html;
 
       document.getElementById('voteForm').onsubmit = async (e) => {
         e.preventDefault();
-        const selected = document.querySelector('input[name="option"]:checked')?.value;
-        if (!selected) return alert('Please choose an option');
-
+        const selected = document.querySelector('input[name="option"]:checked');
+        if (!selected) return alert('Select a candidate!');
         const res = await fetch(`/polls/${poll.id}/vote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ option: selected })
+          body: JSON.stringify({ option: selected.value })
         });
-
         if (res.ok) {
-          alert('✅ Your vote has been submitted!');
-          container.innerHTML = '';
+          alert('Your vote has been submitted!');
+          container.innerHTML = '<p>✅ Thank you for voting!</p>';
         } else {
-          const error = await res.json();
-          alert(error.error || 'Failed to vote');
+          alert('Vote failed');
         }
       };
+    }
+
+    // Login Form Submission
+    document.getElementById('loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('userId').value;
+      const pass = document.getElementById('userPassword').value;
+
+      if (id === 'admin' && pass === 'admin123') {
+        currentUser = { name: 'Admin', isAdmin: true };
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('adminPage').classList.remove('hidden');
+        loadAdminPolls();
+        return;
+      }
+
+      const user = await fetchUser(id, pass);
+      if (user) {
+        currentUser = user;
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('votingPage').classList.remove('hidden');
+        document.getElementById('welcomeName').textContent = `Welcome, ${user.name}`;
+        loadPoll();
+      } else {
+        alert('Invalid ID or password');
+      }
+    };
+
+    document.getElementById('logoutUser').onclick = () => {
+      currentUser = null;
+      document.getElementById('votingPage').classList.add('hidden');
+      document.getElementById('loginPage').classList.remove('hidden');
+    };
+
+    document.getElementById('logoutAdmin').onclick = () => {
+      currentUser = null;
+      document.getElementById('adminPage').classList.add('hidden');
+      document.getElementById('loginPage').classList.remove('hidden');
+    };
+
+    // Admin Poll Creation
+    document.getElementById('createPollForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const q = document.getElementById('newQuestion').value;
+      const rawOpts = document.getElementById('newOptions').value.split(',');
+      const options = {};
+      rawOpts.forEach(opt => options[opt.trim()] = 0);
+
+      const res = await fetch('/polls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, options })
+      });
+      if (res.ok) {
+        alert('Poll created');
+        document.getElementById('createPollForm').reset();
+        loadAdminPolls();
+      } else {
+        alert('Failed to create poll');
+      }
+    };
+
+    async function loadAdminPolls() {
+      const res = await fetch('/polls');
+      const polls = await res.json();
+      const ul = document.getElementById('pollList');
+      ul.innerHTML = '';
+      polls.forEach(p => {
+        const li = document.createElement('li');
+        li.textContent = `${p.question}`;
+        ul.appendChild(li);
+      });
     }
   </script>
 </body>
