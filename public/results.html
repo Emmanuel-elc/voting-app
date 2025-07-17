@@ -3,56 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <title>Poll Results</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Poll Results</h1>
-  <div id="pollResults"></div>
+  <div class="results-container">
+    <h2>Poll Results</h2>
+    <canvas id="resultsChart"></canvas>
+    <a href="/" class="back-button">← Back to Voting</a>
+  </div>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const pollId = params.get('id');
+    // Get poll ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const pollId = urlParams.get('id');
 
     if (!pollId) {
-      document.getElementById('pollResults').innerHTML = '<p>No poll ID provided.</p>';
-    } else {
-      fetch(`/polls/${pollId}`)
-        .then(res => {
-          if (!res.ok) throw new Error('Poll not found');
-          return res.json();
-        })
-        .then(poll => {
-          document.getElementById('pollResults').innerHTML = `
-            <h2>${poll.question}</h2>
-            <canvas id="chart" width="400" height="200"></canvas>
-          `;
-          drawChart(poll.options);
-        })
-        .catch(err => {
-          document.getElementById('pollResults').innerHTML = `<p>Error: ${err.message}</p>`;
-        });
+      alert("No poll ID provided.");
+      window.location.href = '/';
     }
 
-    function drawChart(options) {
-      const ctx = document.getElementById('chart').getContext('2d');
+    // Fetch poll data and render chart
+    async function loadResults() {
+      try {
+        const res = await fetch(`/polls/${pollId}`);
+        if (!res.ok) throw new Error('Failed to load poll');
+        const poll = await res.json();
+
+        drawChart(poll);
+      } catch (err) {
+        alert("Error loading poll results.");
+        console.error(err);
+      }
+    }
+
+    // Render chart
+    function drawChart(poll) {
+      const ctx = document.getElementById('resultsChart').getContext('2d');
       new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: Object.keys(options),
+          labels: Object.keys(poll.options),
           datasets: [{
             label: 'Votes',
-            data: Object.values(options),
-            backgroundColor: 'rgba(75, 192, 192, 0.6)'
+            data: Object.values(poll.options),
+            backgroundColor: [
+              '#4e79a7',
+              '#f28e2b',
+              '#e15759',
+              '#76b7b2',
+              '#59a14f',
+              '#edc948',
+              '#b07aa1',
+              '#ff9da7',
+              '#9c755f',
+              '#bab0ac'
+            ],
+            borderRadius: 5
           }]
         },
         options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: context => `${context.label}: ${context.parsed.y} vote(s)`
+              }
+            }
+          },
           scales: {
-            y: { beginAtZero: true }
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0
+              }
+            }
           }
         }
       });
     }
+
+    loadResults();
   </script>
 </body>
 </html>

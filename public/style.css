@@ -111,3 +111,51 @@ input[type="radio"]:checked + img {
     margin-top: 10px;
   }
 }
+/* ========================
+   Results Page Styles
+========================= */
+
+.results-container {
+  max-width: 600px;
+  margin: 30px auto;
+  padding: 25px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.results-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.6rem;
+}
+
+#resultsChart {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Add spacing around buttons or links */
+.back-button {
+  display: block;
+  text-align: center;
+  margin-top: 30px;
+  font-size: 1rem;
+  color: #007bff;
+  text-decoration: none;
+}
+
+.back-button:hover {
+  text-decoration: underline;
+}
+
+/* Responsive chart container */
+@media (max-width: 600px) {
+  .results-container {
+    padding: 15px;
+  }
+
+  #resultsChart {
+    height: 300px;
+  }
+}
