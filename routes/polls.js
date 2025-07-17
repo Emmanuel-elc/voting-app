@@ -91,3 +91,12 @@ router.delete('/:id', (req, res) => {
 });
 
 module.exports = router;
+// ✅ Get a single poll by ID
+router.get('/:id', (req, res) => {
+  const polls = loadPolls();
+  const poll = polls.find(p => p.id === req.params.id);
+  if (!poll) {
+    return res.status(404).json({ error: 'Poll not found' });
+  }
+  res.json(poll);
+});
