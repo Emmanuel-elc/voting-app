@@ -1,13 +1,12 @@
 [
   {
-    "id": "c1",
-    "name": "Candidate A",
-    "photo": "https://via.placeholder.com/80"
+    "id": "1",
+    "name": "Alice N.",
+    "photo": "/images/alice.jpg"
   },
   {
-    "id": "c2",
-    "name": "Candidate B",
-    "photo": "https://via.placeholder.com/80"
+    "id": "2",
+    "name": "Brian K.",
+    "photo": "/images/brian.jpg"
   }
 ]
-
