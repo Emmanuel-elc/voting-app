@@ -169,6 +169,35 @@
         ul.appendChild(li);
       });
     }
+    document.getElementById('registerVoterForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('voterId').value;
+  const name = document.getElementById('voterName').value;
+  const password = document.getElementById('voterPassword').value;
+
+  const res = await fetch('/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, name, password })
+  });
+
+  if (res.ok) {
+    alert('Voter registered successfully');
+    document.getElementById('registerVoterForm').reset();
+  } else {
+    alert('Failed to register voter');
+  }
+};
+
   </script>
+  <!-- Register Voter -->
+<h2>Register a New Voter</h2>
+<form id="registerVoterForm">
+  <input type="text" id="voterId" placeholder="Voter ID" required />
+  <input type="text" id="voterName" placeholder="Voter Name" required />
+  <input type="password" id="voterPassword" placeholder="Password" required />
+  <button type="submit">Register Voter</button>
+</form>
+
 </body>
 </html>
