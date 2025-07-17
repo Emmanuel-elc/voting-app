@@ -2,371 +2,174 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Voting App</title>
+  <title>Welcome to the Voting Platform</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+
+    header {
+      background-color: #0077cc;
+      color: white;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .candidate-card {
+      border: 1px solid #ccc;
+      margin: 10px;
+      padding: 10px;
+      text-align: left;
+    }
+
+    .candidate-photo {
+      max-width: 80px;
+      float: left;
+      margin-right: 15px;
+    }
+
+    .vote-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .vote-btn:disabled {
+      background: gray;
+    }
+  </style>
 </head>
 <body>
-  <h1>Voting App</h1>
 
-  <!-- 🌙 Dark Mode Toggle -->
-  <label style="float: right; margin-top: -2em;">
-    <input type="checkbox" id="darkToggle" /> Dark Mode
-  </label>
+  <header>
+    <h1>Welcome to the National Voting Platform</h1>
+  </header>
 
-  <!-- Login & Register Section -->
-  <div id="loginSection">
-    <h2>Login</h2>
+  <!-- Login Form -->
+  <div class="container" id="loginContainer">
+    <h2>Login to Vote</h2>
     <form id="loginForm">
-      <input type="text" id="username" placeholder="Username" required />
-      <input type="password" id="password" placeholder="Password" required />
+      <input type="text" id="voterId" placeholder="Enter your ID number" required />
+      <input type="password" id="password" placeholder="Enter your password" required />
       <button type="submit">Login</button>
     </form>
-
-    <h2>Register</h2>
-    <form id="registerForm">
-      <input type="text" id="regUsername" placeholder="Choose username" required />
-      <input type="password" id="regPassword" placeholder="Choose password" required />
-      <button type="submit">Register</button>
-    </form>
   </div>
 
-  <!-- Logged-In Info -->
-  <div id="userInfo" class="hidden">
-    <p>Welcome, <span id="currentUser"></span>!</p>
-    <button id="logoutBtn">Logout</button>
-  </div>
-
-  <!-- Admin Section -->
-  <div id="adminSection" class="hidden">
-    <h2>Create a New Poll</h2>
-    <form id="createPollForm">
-      <input type="text" id="newQuestion" placeholder="Poll question" required />
-      <textarea id="newOptions" rows="3" placeholder="Enter options separated by commas" required></textarea>
-      <label for="expiryDate">Expiry Date (optional)</label>
-      <input type="datetime-local" id="expiryDate" />
-      <button type="submit">Create Poll</button>
-    </form>
-  </div>
-
-  <hr />
-  <h2>Available Polls</h2>
-  <label>
-    <input type="checkbox" id="showExpiredToggle" />
-    Show expired polls
-  </label>
-  <ul id="pollList"></ul>
-  <hr />
-  <div id="pollContainer"></div>
-
-  <!-- Edit Form -->
-  <div id="editFormContainer" class="hidden">
-    <h3>Edit Poll</h3>
-    <form id="editPollForm">
-      <input type="text" id="editQuestion" required />
-      <textarea id="editOptions" rows="3" required></textarea>
-      <input type="hidden" id="editPollId" />
-      <button type="submit">Save Changes</button>
-      <button type="button" onclick="closeEditForm()">Cancel</button>
-    </form>
+  <!-- Voting Page -->
+  <div class="container hidden" id="votingContainer">
+    <h2 id="welcomeUser"></h2>
+    <div id="candidateList"></div>
+    <button class="vote-btn" id="submitVoteBtn" disabled>Submit Vote</button>
+    <p id="voteMsg" style="color: green; font-weight: bold;"></p>
   </div>
 
   <script>
-    let currentUser = null;
-    let isAdmin = false;
+    const loginForm = document.getElementById("loginForm");
+    const loginContainer = document.getElementById("loginContainer");
+    const votingContainer = document.getElementById("votingContainer");
+    const welcomeUser = document.getElementById("welcomeUser");
+    const candidateList = document.getElementById("candidateList");
+    const submitVoteBtn = document.getElementById("submitVoteBtn");
+    const voteMsg = document.getElementById("voteMsg");
 
-    // 🌙 Dark mode toggle
-    const darkToggle = document.getElementById('darkToggle');
-    if (localStorage.getItem('theme') === 'dark') {
-      document.body.classList.add('dark');
-      darkToggle.checked = true;
-    }
-    darkToggle.addEventListener('change', () => {
-      document.body.classList.toggle('dark');
-      localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-    });
+    let selectedCandidateId = null;
+    let userData = null;
 
-    // Login
-    document.getElementById('loginForm').onsubmit = async (e) => {
+    loginForm.onsubmit = async (e) => {
       e.preventDefault();
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+      const id = document.getElementById("voterId").value;
+      const password = document.getElementById("password").value;
 
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, password })
       });
 
+      const data = await res.json();
       if (res.ok) {
-        const user = await res.json();
-        currentUser = user.username;
-        isAdmin = user.role === 'admin';
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('userInfo').classList.remove('hidden');
-        document.getElementById('currentUser').textContent = currentUser;
-        if (isAdmin) document.getElementById('adminSection').classList.remove('hidden');
-        loadPolls();
+        userData = data;
+        loginContainer.classList.add("hidden");
+        votingContainer.classList.remove("hidden");
+        welcomeUser.textContent = `Welcome, ${userData.name}`;
+        loadCandidates();
       } else {
-        alert('Login failed. Check your credentials.');
+        alert(data.error || "Login failed");
       }
     };
 
-    // Registration
-    document.getElementById('registerForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('regUsername').value;
-      const password = document.getElementById('regPassword').value;
+    async function loadCandidates() {
+      const res = await fetch("/candidates");
+      const candidates = await res.json();
+      candidateList.innerHTML = "";
 
-      const res = await fetch('/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-
-      if (res.ok) {
-        const user = await res.json();
-        currentUser = user.username;
-        isAdmin = false;
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('userInfo').classList.remove('hidden');
-        document.getElementById('currentUser').textContent = currentUser;
-        loadPolls();
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Registration failed');
-      }
-    };
-
-    document.getElementById('logoutBtn').onclick = () => {
-      currentUser = null;
-      isAdmin = false;
-      document.getElementById('loginSection').classList.remove('hidden');
-      document.getElementById('userInfo').classList.add('hidden');
-      document.getElementById('adminSection').classList.add('hidden');
-      loadPolls();
-    };
-
-    document.getElementById('createPollForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const question = document.getElementById('newQuestion').value;
-      const optionsText = document.getElementById('newOptions').value;
-      const expiryDate = document.getElementById('expiryDate').value;
-
-      const optionsArray = optionsText.split(',').map(opt => opt.trim());
-      const options = {};
-      optionsArray.forEach(opt => options[opt] = 0);
-
-      const payload = {
-        question,
-        options,
-        expiresAt: expiryDate ? new Date(expiryDate).toISOString() : null
-      };
-
-      const res = await fetch('/polls', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        alert('Poll created');
-        document.getElementById('createPollForm').reset();
-        loadPolls();
-      } else {
-        alert('Failed to create poll');
-      }
-    };
-
-    document.getElementById('showExpiredToggle').addEventListener('change', loadPolls);
-
-    async function loadPolls() {
-      const showExpired = document.getElementById('showExpiredToggle').checked;
-      const res = await fetch(`/polls${showExpired ? '?expired=true' : ''}`);
-      const polls = await res.json();
-      const list = document.getElementById('pollList');
-      list.innerHTML = '';
-
-      if (polls.length === 0) {
-        list.innerHTML = '<li>No polls available.</li>';
-        return;
-      }
-
-      polls.forEach(poll => {
-        const li = document.createElement('li');
-        const link = document.createElement('a');
-        link.href = '#';
-        link.textContent = poll.question;
-        link.onclick = (e) => {
-          e.preventDefault();
-          renderPoll(poll);
-        };
-        li.appendChild(link);
-
-        if (poll.expiresAt) {
-          const exp = new Date(poll.expiresAt).toLocaleString();
-          li.innerHTML += ` <small>(expires at ${exp})</small>`;
-        }
-
-        const resultsBtn = document.createElement('button');
-        resultsBtn.textContent = '📊 View Results';
-        resultsBtn.className = 'results-btn';
-        resultsBtn.onclick = () => {
-          window.open(`results.html?id=${poll.id}`, '_blank');
-        };
-        li.appendChild(resultsBtn);
-
-        if (isAdmin) {
-          const editBtn = document.createElement('button');
-          editBtn.textContent = '✏️ Edit';
-          editBtn.className = 'edit-btn';
-          editBtn.onclick = () => openEditForm(poll);
-
-          const deleteBtn = document.createElement('button');
-          deleteBtn.textContent = '🗑️ Delete';
-          deleteBtn.className = 'delete-btn';
-          deleteBtn.onclick = async () => {
-            if (!confirm('Delete this poll?')) return;
-            const res = await fetch(`/polls/${poll.id}`, { method: 'DELETE' });
-            if (res.ok) {
-              alert('Poll deleted');
-              loadPolls();
-              document.getElementById('pollContainer').innerHTML = '';
-            } else {
-              alert('Failed to delete');
-            }
-          };
-
-          li.appendChild(editBtn);
-          li.appendChild(deleteBtn);
-        }
-
-        list.appendChild(li);
-      });
-    }
-
-    function renderPoll(poll) {
-      const container = document.getElementById('pollContainer');
-      const alreadyVoted = hasVoted(poll.id);
-      const isExpired = poll.expiresAt && new Date(poll.expiresAt).getTime() <= Date.now();
-      let html = `<h3>${poll.question}</h3>`;
-
-      if (!currentUser) {
-        html += `<p><strong>You must log in to vote.</strong></p>`;
-      } else if (isExpired) {
-        html += `<p><strong>This poll has expired. Voting is closed.</strong></p>`;
-      } else if (alreadyVoted) {
-        html += `<p><strong>You already voted on this poll.</strong></p>`;
-      } else {
-        html += `
-          <form id="voteForm">
-            ${Object.keys(poll.options).map(opt => `
-              <label><input type="radio" name="option" value="${opt}" /> ${opt}</label><br/>
-            `).join('')}
-            <button type="submit">Vote</button>
-          </form>
+      candidates.forEach(candidate => {
+        const div = document.createElement("div");
+        div.className = "candidate-card";
+        div.innerHTML = `
+          <img src="${candidate.photo}" alt="Photo" class="candidate-photo" />
+          <strong>${candidate.name}</strong><br/>
+          <label><input type="radio" name="candidate" value="${candidate.id}" /> Vote for ${candidate.name}</label>
         `;
-      }
+        candidateList.appendChild(div);
+      });
 
-      html += `<canvas id="resultsChart" width="400" height="200"></canvas>`;
-      container.innerHTML = html;
-      drawChart(poll.options);
-
-      if (currentUser && !alreadyVoted && !isExpired) {
-        document.getElementById('voteForm').onsubmit = async (e) => {
-          e.preventDefault();
-          const option = document.querySelector('input[name="option"]:checked')?.value;
-          if (!option) return alert('Please select an option');
-
-          const res = await fetch(`/polls/${poll.id}/vote`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ option })
-          });
-
-          if (res.ok) {
-            const updated = await res.json();
-            recordVote(poll.id);
-            alert('Vote recorded!');
-            renderPoll(updated.poll);
-          } else {
-            const err = await res.json();
-            alert(err.error || 'Failed to vote');
-          }
-        };
-      }
-    }
-
-    function drawChart(options) {
-      const ctx = document.getElementById('resultsChart').getContext('2d');
-      if (window.myChart) window.myChart.destroy();
-      window.myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: Object.keys(options),
-          datasets: [{
-            label: 'Votes',
-            data: Object.values(options),
-            backgroundColor: 'rgba(54, 162, 235, 0.6)'
-          }]
-        },
-        options: {
-          scales: {
-            y: { beginAtZero: true }
-          }
-        }
+      document.querySelectorAll('input[name="candidate"]').forEach(input => {
+        input.addEventListener("change", (e) => {
+          selectedCandidateId = e.target.value;
+          submitVoteBtn.disabled = false;
+        });
       });
     }
 
-    function openEditForm(poll) {
-      document.getElementById('editFormContainer').classList.remove('hidden');
-      document.getElementById('editPollId').value = poll.id;
-      document.getElementById('editQuestion').value = poll.question;
-      document.getElementById('editOptions').value = Object.keys(poll.options).join(', ');
-    }
+    submitVoteBtn.onclick = async () => {
+      if (!selectedCandidateId) return;
 
-    function closeEditForm() {
-      document.getElementById('editFormContainer').classList.add('hidden');
-    }
-
-    document.getElementById('editPollForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('editPollId').value;
-      const question = document.getElementById('editQuestion').value;
-      const optionsText = document.getElementById('editOptions').value;
-      const optionsArray = optionsText.split(',').map(opt => opt.trim());
-      const options = {};
-      optionsArray.forEach(opt => options[opt] = 0);
-
-      const res = await fetch(`/polls/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, options })
+      const res = await fetch("/vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voterId: userData.id,
+          candidateId: selectedCandidateId
+        })
       });
 
       if (res.ok) {
-        alert('Poll updated');
-        closeEditForm();
-        loadPolls();
+        voteMsg.textContent = "✅ Your vote has been submitted!";
+        submitVoteBtn.disabled = true;
+        submitVoteBtn.textContent = "Voted";
       } else {
-        alert('Failed to update poll');
+        voteMsg.textContent = "❌ Error submitting your vote.";
       }
     };
-
-    function hasVoted(pollId) {
-      const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
-      return voted.includes(pollId);
-    }
-
-    function recordVote(pollId) {
-      const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
-      if (!voted.includes(pollId)) {
-        voted.push(pollId);
-        localStorage.setItem('votedPolls', JSON.stringify(voted));
-      }
-    }
-
-    window.onload = loadPolls;
   </script>
 </body>
 </html>
