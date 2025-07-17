@@ -4,7 +4,8 @@ const fs = require('fs');
 const app = express();
 
 const pollsRoute = require('./routes/polls');
-const authRoute = require('./routes/auth');
+const authRoutes = require('./routes/auth');
+app.use('/auth', authRoutes);
 const candidatesRoute = require('./routes/candidates');
 
 app.use(express.json());

@@ -3,21 +3,43 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 
-const usersFile = path.join(__dirname, '../data/users.json');
+const USERS_FILE = path.join(__dirname, '../data/users.json');
 
-// Load users from the file
 function loadUsers() {
-  if (!fs.existsSync(usersFile)) return [];
-  return JSON.parse(fs.readFileSync(usersFile));
+  try {
+    return JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
+  } catch (err) {
+    return [];
+  }
 }
 
-// POST /login
-router.post('/', (req, res) => {
-  const { id, password } = req.body;
-  if (!id || !password) {
-    return res.status(400).json({ error: 'ID and password are required' });
+function saveUsers(users) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
+
+// Register route
+router.post('/register', (req, res) => {
+  const { id, name, password } = req.body;
+
+  if (!id || !name || !password) {
+    return res.status(400).json({ error: 'ID, name, and password are required' });
   }
 
+  const users = loadUsers();
+  const exists = users.find(u => u.id === id);
+
+  if (exists) {
+    return res.status(409).json({ error: 'User ID already exists' });
+  }
+
+  users.push({ id, name, password });
+  saveUsers(users);
+  res.json({ message: 'User registered successfully' });
+});
+
+// Login route
+router.post('/login', (req, res) => {
+  const { id, password } = req.body;
   const users = loadUsers();
   const user = users.find(u => u.id === id && u.password === password);
 
@@ -25,8 +47,7 @@ router.post('/', (req, res) => {
     return res.status(401).json({ error: 'Invalid ID or password' });
   }
 
-  // Return only public info
-  res.json({ id: user.id, name: user.name });
+  res.json({ name: user.name });
 });
 
 module.exports = router;
