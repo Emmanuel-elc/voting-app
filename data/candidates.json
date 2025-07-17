@@ -1,0 +1,12 @@
+[
+  {
+    "id": "c1",
+    "name": "Candidate A",
+    "photo": "https://via.placeholder.com/80"
+  },
+  {
+    "id": "c2",
+    "name": "Candidate B",
+    "photo": "https://via.placeholder.com/80"
+  }
+]

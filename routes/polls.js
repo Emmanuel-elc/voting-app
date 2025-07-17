@@ -1,27 +1,27 @@
 const express = require('express');
-const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const router = express.Router();
 
-const dataPath = path.join(__dirname, '../pollsData.json');
+const DATA_FILE = path.join(__dirname, '..', 'polls.json');
 
-// Load polls
+// Load polls from file
 function loadPolls() {
-  if (!fs.existsSync(dataPath)) return [];
-  const raw = fs.readFileSync(dataPath);
-  return raw.length ? JSON.parse(raw) : [];
+  if (!fs.existsSync(DATA_FILE)) return [];
+  const data = fs.readFileSync(DATA_FILE);
+  return JSON.parse(data);
 }
 
-// Save polls
-function savePolls(data) {
-  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+// Save polls to file
+function savePolls(polls) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(polls, null, 2));
 }
 
-// Get all polls
+// GET /polls?expired=true
 router.get('/', (req, res) => {
   const polls = loadPolls();
-  const showExpired = req.query.expired === 'true';
   const now = Date.now();
+  const showExpired = req.query.expired === 'true';
 
   const filtered = showExpired
     ? polls
@@ -30,80 +30,60 @@ router.get('/', (req, res) => {
   res.json(filtered);
 });
 
-// Create new poll
-router.post('/', (req, res) => {
+// GET /polls/:id
+router.get('/:id', (req, res) => {
   const polls = loadPolls();
+  const poll = polls.find(p => p.id === req.params.id);
+  if (!poll) return res.status(404).json({ error: 'Poll not found' });
+  res.json(poll);
+});
+
+// POST /polls (create poll)
+router.post('/', (req, res) => {
   const { question, options, expiresAt } = req.body;
+  if (!question || !options || typeof options !== 'object') {
+    return res.status(400).json({ error: 'Invalid poll data' });
+  }
+
+  const polls = loadPolls();
+  const id = Date.now().toString();
+
+  const pollOptions = {};
+  for (const [opt, img] of Object.entries(options)) {
+    pollOptions[opt] = { votes: 0, image: img };
+  }
 
   const newPoll = {
-    id: Date.now(),
+    id,
     question,
-    options,
+    options: pollOptions,
     expiresAt: expiresAt || null
   };
 
   polls.push(newPoll);
   savePolls(polls);
-  res.status(201).json(newPoll);
+  res.status(201).json({ message: 'Poll created', poll: newPoll });
 });
 
-// Get poll by ID
-router.get('/:id', (req, res) => {
-  const polls = loadPolls();
-  const poll = polls.find(p => p.id == req.params.id);
-
-  if (poll) res.json(poll);
-  else res.status(404).json({ error: 'Poll not found' });
-});
-
-// Vote on a poll
+// POST /polls/:id/vote
 router.post('/:id/vote', (req, res) => {
+  const { option } = req.body;
   const polls = loadPolls();
-  const poll = polls.find(p => p.id == req.params.id);
-  const option = req.body.option;
-  const now = Date.now();
-
-  if (!poll) {
-    return res.status(404).json({ error: 'Poll not found' });
+  const poll = polls.find(p => p.id === req.params.id);
+  if (!poll || !poll.options[option]) {
+    return res.status(400).json({ error: 'Invalid poll or option' });
   }
 
-  if (poll.expiresAt && new Date(poll.expiresAt).getTime() <= now) {
-    return res.status(400).json({ error: 'Poll has expired' });
-  }
-
-  if (!(option in poll.options)) {
-    return res.status(400).json({ error: 'Invalid option' });
-  }
-
-  poll.options[option]++;
+  poll.options[option].votes++;
   savePolls(polls);
   res.json({ message: 'Vote recorded', poll });
 });
 
-// Update a poll (admin-only)
-router.patch('/:id', (req, res) => {
-  const polls = loadPolls();
-  const poll = polls.find(p => p.id == req.params.id);
-
-  if (!poll) {
-    return res.status(404).json({ error: 'Poll not found' });
-  }
-
-  if (req.body.question) poll.question = req.body.question;
-  if (req.body.options) poll.options = req.body.options;
-
-  savePolls(polls);
-  res.json({ message: 'Poll updated', poll });
-});
-
-// Delete a poll (admin-only)
+// DELETE /polls/:id
 router.delete('/:id', (req, res) => {
   let polls = loadPolls();
-  const index = polls.findIndex(p => p.id == req.params.id);
-
-  if (index === -1) {
-    return res.status(404).json({ error: 'Poll not found' });
-  }
+  const index = polls.findIndex(p => p.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Poll not found' });
 
   polls.splice(index, 1);
   savePolls(polls);

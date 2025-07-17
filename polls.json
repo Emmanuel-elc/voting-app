@@ -1,0 +1,23 @@
+
+
+[
+  {
+    "id": "10001",
+    "question": "Who should be the next Head Prefect?",
+    "options": {
+      "Alice A.": {
+        "votes": 12,
+        "image": "https://via.placeholder.com/100?text=Alice"
+      },
+      "Brian B.": {
+        "votes": 8,
+        "image": "https://via.placeholder.com/100?text=Brian"
+      },
+      "Clara C.": {
+        "votes": 6,
+        "image": "https://via.placeholder.com/100?text=Clara"
+      }
+    },
+    "expiresAt": "2025-12-31T23:59:00.000Z"
+  }
+]

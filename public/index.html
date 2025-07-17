@@ -2,174 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Welcome to the Voting Platform</title>
+  <title>Secure Voting App</title>
   <link rel="stylesheet" href="style.css" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-    }
-
-    header {
-      background-color: #0077cc;
-      color: white;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 30px auto;
-      background: white;
-      padding: 20px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    input, button {
-      padding: 10px;
-      margin: 10px 0;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .candidate-card {
-      border: 1px solid #ccc;
-      margin: 10px;
-      padding: 10px;
-      text-align: left;
-    }
-
-    .candidate-photo {
-      max-width: 80px;
-      float: left;
-      margin-right: 15px;
-    }
-
-    .vote-btn {
-      background: #28a745;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    .vote-btn:disabled {
-      background: gray;
-    }
-  </style>
 </head>
 <body>
-
-  <header>
-    <h1>Welcome lets vote Platform</h1>
-  </header>
-
-  <!-- Login Form -->
-  <div class="container" id="loginContainer">
-    <h2>Login to Vote</h2>
+  <div id="welcomeSection">
+    <h1>Welcome to the Voting System</h1>
     <form id="loginForm">
-      <input type="text" id="voterId" placeholder="Enter your ID number" required />
-      <input type="password" id="password" placeholder="Enter your password" required />
+      <input type="text" id="userId" placeholder="Enter your ID" required />
+      <input type="password" id="userPassword" placeholder="Enter your password" required />
       <button type="submit">Login</button>
     </form>
   </div>
 
-  <!-- Voting Page -->
-  <div class="container hidden" id="votingContainer">
-    <h2 id="welcomeUser"></h2>
-    <div id="candidateList"></div>
-    <button class="vote-btn" id="submitVoteBtn" disabled>Submit Vote</button>
-    <p id="voteMsg" style="color: green; font-weight: bold;"></p>
+  <div id="votingSection" class="hidden">
+    <h2 id="greeting"></h2>
+    <div id="pollContainer"></div>
+    <button id="logoutBtn">Logout</button>
   </div>
 
   <script>
-    const loginForm = document.getElementById("loginForm");
-    const loginContainer = document.getElementById("loginContainer");
-    const votingContainer = document.getElementById("votingContainer");
-    const welcomeUser = document.getElementById("welcomeUser");
-    const candidateList = document.getElementById("candidateList");
-    const submitVoteBtn = document.getElementById("submitVoteBtn");
-    const voteMsg = document.getElementById("voteMsg");
+    let currentUser = null;
 
-    let selectedCandidateId = null;
-    let userData = null;
-
-    loginForm.onsubmit = async (e) => {
+    document.getElementById('loginForm').onsubmit = async (e) => {
       e.preventDefault();
-      const id = document.getElementById("voterId").value;
-      const password = document.getElementById("password").value;
+      const id = document.getElementById('userId').value;
+      const password = document.getElementById('userPassword').value;
 
-      const res = await fetch("/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, password })
       });
 
       const data = await res.json();
       if (res.ok) {
-        userData = data;
-        loginContainer.classList.add("hidden");
-        votingContainer.classList.remove("hidden");
-        welcomeUser.textContent = `Welcome, ${userData.name}`;
-        loadCandidates();
+        currentUser = data.user;
+        document.getElementById('welcomeSection').classList.add('hidden');
+        document.getElementById('votingSection').classList.remove('hidden');
+        document.getElementById('greeting').textContent = `Welcome, ${currentUser.name}!`;
+        loadPoll();
       } else {
-        alert(data.error || "Login failed");
+        alert(data.error || 'Login failed');
       }
     };
 
-    async function loadCandidates() {
-      const res = await fetch("/candidates");
-      const candidates = await res.json();
-      candidateList.innerHTML = "";
+    document.getElementById('logoutBtn').onclick = () => {
+      currentUser = null;
+      document.getElementById('votingSection').classList.add('hidden');
+      document.getElementById('welcomeSection').classList.remove('hidden');
+    };
 
-      candidates.forEach(candidate => {
-        const div = document.createElement("div");
-        div.className = "candidate-card";
-        div.innerHTML = `
-          <img src="${candidate.photo}" alt="Photo" class="candidate-photo" />
-          <strong>${candidate.name}</strong><br/>
-          <label><input type="radio" name="candidate" value="${candidate.id}" /> Vote for ${candidate.name}</label>
-        `;
-        candidateList.appendChild(div);
-      });
-
-      document.querySelectorAll('input[name="candidate"]').forEach(input => {
-        input.addEventListener("change", (e) => {
-          selectedCandidateId = e.target.value;
-          submitVoteBtn.disabled = false;
-        });
-      });
+    async function loadPoll() {
+      const res = await fetch('/polls');
+      const poll = await res.json();
+      renderPoll(poll);
     }
 
-    submitVoteBtn.onclick = async () => {
-      if (!selectedCandidateId) return;
-
-      const res = await fetch("/vote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          voterId: userData.id,
-          candidateId: selectedCandidateId
-        })
-      });
-
-      if (res.ok) {
-        voteMsg.textContent = "✅ Your vote has been submitted!";
-        submitVoteBtn.disabled = true;
-        submitVoteBtn.textContent = "Voted";
-      } else {
-        voteMsg.textContent = "❌ Error submitting your vote.";
+    function renderPoll(poll) {
+      const container = document.getElementById('pollContainer');
+      let html = `<h3>${poll.question}</h3><form id="voteForm">`;
+      for (const [option, imageUrl] of Object.entries(poll.options)) {
+        html += `
+          <label>
+            <input type="radio" name="option" value="${option}" />
+            <img src="${imageUrl}" alt="${option}" width="100" /><br />
+            ${option}
+          </label><br/>
+        `;
       }
-    };
+      html += `<button type="submit">Submit Vote</button></form>`;
+      container.innerHTML = html;
+
+      document.getElementById('voteForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const selected = document.querySelector('input[name="option"]:checked')?.value;
+        if (!selected) return alert('Please choose an option');
+
+        const res = await fetch(`/polls/${poll.id}/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ option: selected })
+        });
+
+        if (res.ok) {
+          alert('✅ Your vote has been submitted!');
+          container.innerHTML = '';
+        } else {
+          const error = await res.json();
+          alert(error.error || 'Failed to vote');
+        }
+      };
+    }
   </script>
 </body>
 </html>
