@@ -111,51 +111,91 @@ input[type="radio"]:checked + img {
     margin-top: 10px;
   }
 }
-/* ========================
-   Results Page Styles
-========================= */
 
-.results-container {
-  max-width: 600px;
-  margin: 30px auto;
-  padding: 25px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+
+/* ==== Results Page Styling ==== */
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background: #f9f9f9;
+  color: #333;
 }
 
-.results-container h2 {
+h1, h2, h3 {
+  text-align: center;
+  color: #2c3e50;
+}
+
+form#adminAccessForm {
   text-align: center;
   margin-bottom: 20px;
-  font-size: 1.6rem;
 }
 
-#resultsChart {
+form#adminAccessForm input[type="password"] {
+  padding: 10px;
+  width: 250px;
+  font-size: 16px;
+}
+
+form#adminAccessForm button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background: #3498db;
+  border: none;
+  color: white;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+form#adminAccessForm button:hover {
+  background: #2980b9;
+}
+
+#resultsSection {
+  max-width: 800px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #ccc;
+}
+
+#resultsSection button {
+  margin: 10px 5px;
+  padding: 10px 15px;
+  font-size: 14px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+#resultsSection button:hover {
+  background: #219150;
+}
+
+.poll-result {
+  margin-bottom: 40px;
+}
+
+canvas {
   max-width: 100%;
   height: auto;
 }
 
-/* Add spacing around buttons or links */
-.back-button {
-  display: block;
-  text-align: center;
-  margin-top: 30px;
-  font-size: 1rem;
-  color: #007bff;
-  text-decoration: none;
-}
-
-.back-button:hover {
-  text-decoration: underline;
-}
-
-/* Responsive chart container */
-@media (max-width: 600px) {
-  .results-container {
-    padding: 15px;
+/* ==== Print Styling ==== */
+@media print {
+  body {
+    background: white;
+    color: black;
   }
-
-  #resultsChart {
-    height: 300px;
+  form, button {
+    display: none !important;
+  }
+  #resultsSection {
+    box-shadow: none;
+    border: none;
   }
 }
