@@ -1,38 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Voting App</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
 <body>
-  <h1>Voting App</h1>
+  <h1>🗳️ Voting Platform</h1>
 
-  <!-- 🔐 LOGIN FORM -->
-  <div id="loginSection">
+  <!-- Login / Registration -->
+  <div id="authSection">
     <h2>Login</h2>
     <form id="loginForm">
       <input type="text" id="loginId" placeholder="ID Number" required />
       <input type="password" id="loginPassword" placeholder="Password" required />
       <button type="submit">Login</button>
     </form>
-  </div>
-
-  <!-- 🧾 REGISTRATION FORM (Admin Only for now) -->
-  <div id="registerSection" class="hidden">
-    <h2>Register New Voter</h2>
+    <h3>Register</h3>
     <form id="registerForm">
-      <input type="text" id="regId" placeholder="ID Number" required />
-      <input type="text" id="regName" placeholder="Full Name" required />
-      <input type="password" id="regPassword" placeholder="Password" required />
+      <input type="text" id="registerId" placeholder="ID Number" required />
+      <input type="text" id="registerName" placeholder="Full Name" required />
+      <input type="password" id="registerPassword" placeholder="Password" required />
       <button type="submit">Register</button>
     </form>
   </div>
 
-  <!-- ✅ LOGGED-IN VOTER/ADMIN SECTION -->
-  <div id="mainApp" class="hidden">
-    <h2>Welcome, <span id="userName"></span>!</h2>
-    <p id="userType"></p>
-    <div id="pollList"></div>
-    <button onclick="logout()">Logout</button>
+  <!-- Welcome & Logout -->
+  <div id="welcomeSection" class="hidden">
+    <p>Welcome, <strong id="userName"></strong>!</p>
+    <button id="logoutBtn">Logout</button>
   </div>
+
+  <!-- Admin Only: Create Poll -->
+  <div id="adminPanel" class="hidden">
+    <h2>Create New Poll</h2>
+    <form id="createPollForm">
+      <input type="text" id="newQuestion" placeholder="Poll question" required />
+      <textarea id="newOptions" rows="2" placeholder="Comma-separated options" required></textarea>
+      <input type="datetime-local" id="expiryDate" />
+      <button type="submit">Create Poll</button>
+    </form>
+    <hr />
+  </div>
+
+  <h2>📋 Polls</h2>
+  <label><input type="checkbox" id="showExpiredToggle" /> Show expired</label>
+  <ul id="pollList"></ul>
+  <div id="pollContainer"></div>
 
   <script>
     let currentUser = null;
 
+    function saveUser(user) {
+      localStorage.setItem('currentUser', JSON.stringify(user));
+    }
+
+    function loadUser() {
+      const data = localStorage.getItem('currentUser');
+      if (data) currentUser = JSON.parse(data);
+    }
+
+    function showUI() {
+      if (!currentUser) return;
+
+      document.getElementById('authSection').classList.add('hidden');
+      document.getElementById('welcomeSection').classList.remove('hidden');
+      document.getElementById('userName').textContent = currentUser.name;
+
+      if (currentUser.role === 'admin') {
+        document.getElementById('adminPanel').classList.remove('hidden');
+      } else {
+        document.getElementById('adminPanel').classList.add('hidden');
+      }
+
+      loadPolls();
+    }
+
+    document.getElementById('logoutBtn').onclick = () => {
+      localStorage.removeItem('currentUser');
+      location.reload();
+    };
+
+    // Login
     document.getElementById('loginForm').onsubmit = async (e) => {
       e.preventDefault();
       const id = document.getElementById('loginId').value;
@@ -44,20 +94,22 @@
         body: JSON.stringify({ id, password })
       });
 
-      const data = await res.json();
+      const result = await res.json();
       if (res.ok) {
-        currentUser = { id, name: data.name, isAdmin: data.isAdmin };
-        showApp();
+        currentUser = result.user;
+        saveUser(currentUser);
+        showUI();
       } else {
-        alert(data.error || 'Login failed');
+        alert(result.error || 'Login failed');
       }
     };
 
+    // Register
     document.getElementById('registerForm').onsubmit = async (e) => {
       e.preventDefault();
-      const id = document.getElementById('regId').value;
-      const name = document.getElementById('regName').value;
-      const password = document.getElementById('regPassword').value;
+      const id = document.getElementById('registerId').value;
+      const name = document.getElementById('registerName').value;
+      const password = document.getElementById('registerPassword').value;
 
       const res = await fetch('/auth/register', {
         method: 'POST',
@@ -65,35 +117,155 @@
         body: JSON.stringify({ id, name, password })
       });
 
-      const data = await res.json();
+      const result = await res.json();
       if (res.ok) {
-        alert('User registered');
+        alert('Registered! You can now log in.');
         document.getElementById('registerForm').reset();
       } else {
-        alert(data.error || 'Failed to register');
+        alert(result.error || 'Registration failed');
       }
     };
 
-    function showApp() {
-      document.getElementById('loginSection').classList.add('hidden');
-      document.getElementById('mainApp').classList.remove('hidden');
-      document.getElementById('userName').textContent = currentUser.name;
-      document.getElementById('userType').textContent = currentUser.isAdmin ? "👑 Admin" : "🧑‍💼 Voter";
+    // Create Poll
+    document.getElementById('createPollForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const question = document.getElementById('newQuestion').value;
+      const optionsText = document.getElementById('newOptions').value;
+      const expiryDate = document.getElementById('expiryDate').value;
 
-      if (currentUser.isAdmin) {
-        document.getElementById('registerSection').classList.remove('hidden');
-        // show admin-only links or actions
+      const optionsArray = optionsText.split(',').map(opt => opt.trim());
+      const options = {};
+      optionsArray.forEach(opt => options[opt] = 0);
+
+      const payload = {
+        question,
+        options,
+        expiresAt: expiryDate ? new Date(expiryDate).toISOString() : null
+      };
+
+      const res = await fetch('/polls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        alert('Poll created');
+        e.target.reset();
+        loadPolls();
       } else {
-        document.getElementById('registerSection').classList.add('hidden');
-        // show voting area
+        alert('Failed to create poll');
+      }
+    };
+
+    // Load Polls
+    document.getElementById('showExpiredToggle').addEventListener('change', loadPolls);
+
+    async function loadPolls() {
+      const showExpired = document.getElementById('showExpiredToggle').checked;
+      const res = await fetch(`/polls${showExpired ? '?expired=true' : ''}`);
+      const polls = await res.json();
+      const list = document.getElementById('pollList');
+      list.innerHTML = '';
+
+      if (polls.length === 0) {
+        list.innerHTML = '<li>No polls available.</li>';
+        return;
+      }
+
+      polls.forEach(poll => {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = poll.question;
+        link.onclick = (e) => {
+          e.preventDefault();
+          renderPoll(poll);
+        };
+        li.appendChild(link);
+        list.appendChild(li);
+
+        if (currentUser?.role === 'admin') {
+          const btn = document.createElement('button');
+          btn.textContent = '🗑️ Delete';
+          btn.onclick = async () => {
+            if (!confirm('Delete this poll?')) return;
+            await fetch(`/polls/${poll.id}`, { method: 'DELETE' });
+            loadPolls();
+          };
+          li.appendChild(btn);
+        }
+      });
+    }
+
+    function renderPoll(poll) {
+      const container = document.getElementById('pollContainer');
+      const voted = JSON.parse(localStorage.getItem('votedPolls') || '[]');
+      const alreadyVoted = voted.includes(poll.id);
+
+      let html = `<h3>${poll.question}</h3>`;
+      if (alreadyVoted) {
+        html += '<p><strong>You already voted.</strong></p>';
+      } else {
+        html += `<form id="voteForm">
+          ${Object.keys(poll.options).map(opt => `
+            <label><input type="radio" name="option" value="${opt}"> ${opt}</label><br/>
+          `).join('')}
+          <button type="submit">Vote</button>
+        </form>`;
+      }
+
+      html += `<canvas id="resultsChart" width="400" height="200"></canvas>`;
+      container.innerHTML = html;
+      drawChart(poll.options);
+
+      if (!alreadyVoted) {
+        document.getElementById('voteForm').onsubmit = async (e) => {
+          e.preventDefault();
+          const selected = document.querySelector('input[name="option"]:checked')?.value;
+          if (!selected) return alert('Select an option');
+
+          const res = await fetch(`/polls/${poll.id}/vote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ option: selected })
+          });
+
+          if (res.ok) {
+            const updated = await res.json();
+            voted.push(poll.id);
+            localStorage.setItem('votedPolls', JSON.stringify(voted));
+            renderPoll(updated.poll);
+          } else {
+            alert('Failed to vote');
+          }
+        };
       }
     }
 
-    function logout() {
-      currentUser = null;
-      document.getElementById('mainApp').classList.add('hidden');
-      document.getElementById('registerSection').classList.add('hidden');
-      document.getElementById('loginSection').classList.remove('hidden');
+    function drawChart(options) {
+      const ctx = document.getElementById('resultsChart').getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+      window.myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(options),
+          datasets: [{
+            label: 'Votes',
+            data: Object.values(options),
+            backgroundColor: 'rgba(75,192,192,0.6)'
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
     }
+
+    loadUser();
+    if (currentUser) showUI();
   </script>
 </body>
+</html>

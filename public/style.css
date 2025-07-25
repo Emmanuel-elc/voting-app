@@ -1,201 +1,191 @@
-/* Reset & Base */
+/* Base Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0;
-  padding: 20px;
-  background-color: #f4f4f4;
+  line-height: 1.6;
+  background-color: #f4f6fa;
   color: #333;
+  padding: 1em;
 }
 
+/* Headings */
 h1, h2, h3 {
   text-align: center;
+  margin-bottom: 1em;
+  color: #004080;
 }
 
+/* Containers */
+.container, #authSection, #welcomeSection, #adminPanel, #pollContainer {
+  max-width: 700px;
+  margin: 2em auto;
+  padding: 1.5em;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* Forms */
+form {
+  margin-top: 1em;
+}
+
+input, textarea, select {
+  width: 100%;
+  padding: 0.75em;
+  margin: 0.5em 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+button {
+  background-color: #0077cc;
+  color: #fff;
+  padding: 0.7em 1.2em;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 0.5em;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #005fa3;
+}
+
+/* Poll List */
+#pollList {
+  list-style: none;
+  padding: 0;
+  margin-top: 2em;
+}
+
+#pollList li {
+  background: #fff;
+  margin: 1em 0;
+  padding: 1em;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+}
+
+#pollList li small {
+  color: #777;
+}
+
+#pollList button {
+  margin: 0.5em 0 0;
+}
+
+/* Poll Options */
+label input[type="radio"] {
+  margin-right: 0.5em;
+}
+
+canvas {
+  margin-top: 2em;
+}
+
+/* Admin controls */
+.edit-btn, .delete-btn, .results-btn {
+  display: inline-block;
+  margin-right: 0.5em;
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  border: none;
+}
+
+.edit-btn {
+  background: #ffd700;
+  color: #000;
+}
+
+.delete-btn {
+  background: #dc3545;
+  color: #fff;
+}
+
+.results-btn {
+  background: #28a745;
+  color: #fff;
+}
+
+/* Hide/Show */
 .hidden {
   display: none;
 }
 
-form {
-  max-width: 400px;
-  margin: 10px auto;
-  padding: 20px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+/* Candidate Photos */
+.candidate-card {
+  text-align: center;
+  margin: 1em 0;
 }
 
-input[type="text"],
-input[type="password"],
-textarea,
-input[type="datetime-local"] {
-  width: 100%;
-  padding: 10px;
-  margin: 10px 0 15px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  box-sizing: border-box;
-}
-
-button {
-  display: inline-block;
-  background-color: #007bff;
-  color: #fff;
-  padding: 10px 15px;
-  margin-top: 5px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #0056b3;
-}
-
-#pollContainer {
-  max-width: 600px;
-  margin: 20px auto;
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-/* Candidate option with image */
-label img {
-  display: inline-block;
-  margin-right: 10px;
-  vertical-align: middle;
-  border-radius: 8px;
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
+.candidate-card img {
+  max-width: 100px;
+  border-radius: 50%;
   border: 2px solid #ccc;
-  transition: border 0.3s ease;
+  margin-bottom: 0.5em;
 }
 
-input[type="radio"]:checked + img {
-  border-color: #007bff;
-}
-
-/* Poll list */
-#pollList {
-  list-style: none;
-  padding: 0;
-  margin: 20px auto;
-  max-width: 500px;
-}
-
-#pollList li {
-  padding: 12px;
-  background: #f9f9f9;
-  border-bottom: 1px solid #ddd;
+/* Admin panel sections */
+.admin-buttons {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  margin-bottom: 1.5em;
 }
 
-/* Responsive adjustments */
+.admin-buttons a {
+  text-decoration: none;
+  background-color: #0077cc;
+  color: white;
+  padding: 0.8em 1.2em;
+  border-radius: 6px;
+  margin: 0.5em;
+  display: inline-block;
+}
+
+.admin-buttons a:hover {
+  background-color: #005fa3;
+}
+
+/* Footer or small links */
+footer {
+  margin-top: 3em;
+  text-align: center;
+  font-size: 0.85em;
+  color: #888;
+}
+
+/* Responsive */
 @media screen and (max-width: 600px) {
-  form, #pollContainer {
-    width: 90%;
-    padding: 10px;
-  }
-
-  label img {
-    width: 60px;
-    height: 60px;
-  }
-
-  button {
-    width: 100%;
-    margin-top: 10px;
-  }
-}
-
-
-/* ==== Results Page Styling ==== */
-
-body {
-  font-family: Arial, sans-serif;
-  margin: 20px;
-  background: #f9f9f9;
-  color: #333;
-}
-
-h1, h2, h3 {
-  text-align: center;
-  color: #2c3e50;
-}
-
-form#adminAccessForm {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-form#adminAccessForm input[type="password"] {
-  padding: 10px;
-  width: 250px;
-  font-size: 16px;
-}
-
-form#adminAccessForm button {
-  padding: 10px 20px;
-  font-size: 16px;
-  background: #3498db;
-  border: none;
-  color: white;
-  cursor: pointer;
-  margin-left: 10px;
-}
-
-form#adminAccessForm button:hover {
-  background: #2980b9;
-}
-
-#resultsSection {
-  max-width: 800px;
-  margin: auto;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px #ccc;
-}
-
-#resultsSection button {
-  margin: 10px 5px;
-  padding: 10px 15px;
-  font-size: 14px;
-  background: #27ae60;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-#resultsSection button:hover {
-  background: #219150;
-}
-
-.poll-result {
-  margin-bottom: 40px;
-}
-
-canvas {
-  max-width: 100%;
-  height: auto;
-}
-
-/* ==== Print Styling ==== */
-@media print {
   body {
-    background: white;
-    color: black;
+    padding: 1em;
   }
-  form, button {
-    display: none !important;
+
+  .admin-buttons {
+    flex-direction: column;
+    align-items: center;
   }
-  #resultsSection {
-    box-shadow: none;
-    border: none;
+
+  .admin-buttons a {
+    width: 100%;
+    text-align: center;
+  }
+
+  button, input, textarea {
+    font-size: 1em;
+  }
+
+  canvas {
+    width: 100% !important;
+    height: auto !important;
   }
 }
