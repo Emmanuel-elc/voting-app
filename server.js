@@ -1,53 +1,39 @@
-// server.js
-const mongoose = require('mongoose');
-
-// Replace with your actual MongoDB URI
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/voting-app';
-
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ Connected to MongoDB'))
-.catch((err) => console.error('❌ MongoDB connection error:', err));
-
+// Imports (top of file)
 const express = require('express');
+const mongoose = require('mongoose');
 const path = require('path');
-const pollsRoute = require('./routes/polls');
-const authRoute = require('./routes/auth'); // ✅ ADD THIS LINE
+
+const authRoute = require('./routes/auth');
 const registerRoute = require('./routes/register');
-app.use('/register', registerRoute);
+const pollsRoute = require('./routes/polls');
+const candidatesRoute = require('./routes/candidates');
 
-
+// ✅ Initialize app AFTER imports
 const app = express();
 
+// Middleware
 app.use(express.json());
-
-// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
 // API routes
+app.use('/auth', authRoute);
+app.use('/register', registerRoute);
 app.use('/polls', pollsRoute);
-app.use('/auth', authRoute); // ✅ USE HERE
+app.use('/candidates', candidatesRoute);
 
-// Root route
+// Serve index.html for the root path
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-// Serve results.html manually if not already served
-app.get('/results', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'results.html'));
-});
-const fs = require('fs');
-const pollsPath = path.join(__dirname, 'data', 'polls.json');
 
-app.get('/results-data', (req, res) => {
-  const polls = JSON.parse(fs.readFileSync(pollsPath));
-  res.json(polls);
-});
-
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+// Connect to MongoDB and start server
+const PORT = process.env.PORT || 10000;
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/voting-app')
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running at http://localhost:${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('MongoDB connection failed:', err.message);
+  });
