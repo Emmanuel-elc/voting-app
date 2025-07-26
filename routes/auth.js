@@ -1,52 +1,58 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { MongoClient } = require('mongodb');
 const router = express.Router();
 
-const USERS_FILE = path.join(__dirname, '..', 'data', 'users.json');
+const uri = process.env.MONGO_URI;
+const client = new MongoClient(uri);
+const dbName = 'voting-app'; // or whatever your database is named
 
-// Helper to load and save users
-function loadUsers() {
-  if (!fs.existsSync(USERS_FILE)) return [];
-  return JSON.parse(fs.readFileSync(USERS_FILE));
+async function getUserCollection() {
+  await client.connect();
+  return client.db(dbName).collection('users');
 }
 
-function saveUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
+// Login Route
+router.post('/login', async (req, res) => {
+  const { idNumber, password } = req.body;
 
-// ✅ REGISTER USER
-router.post('/register', async (req, res) => {
-  const { id, name, password, isAdmin = false } = req.body;
+  try {
+    const users = await getUserCollection();
+    const user = await users.findOne({ idNumber });
 
-  if (!id || !name || !password) {
-    return res.status(400).json({ error: 'Missing fields' });
+    if (!user) return res.status(400).json({ error: 'Invalid ID or password' });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ error: 'Invalid ID or password' });
+
+    const token = jwt.sign({ id: user._id, name: user.name, role: user.role }, 'your_jwt_secret');
+    res.json({ token, name: user.name, role: user.role });
+
+  } catch (err) {
+    console.error('Login failed:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  const users = loadUsers();
-  const existing = users.find(u => u.id === id);
-  if (existing) return res.status(409).json({ error: 'User already exists' });
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  users.push({ id, name, password: hashedPassword, isAdmin });
-  saveUsers(users);
-
-  res.json({ message: 'User registered successfully' });
 });
 
-// ✅ LOGIN USER
-router.post('/login', async (req, res) => {
-  const { id, password } = req.body;
+// Register Route
+router.post('/register', async (req, res) => {
+  const { idNumber, name, password, role } = req.body;
 
-  const users = loadUsers();
-  const user = users.find(u => u.id === id);
-  if (!user) return res.status(401).json({ error: 'Invalid ID or password' });
+  try {
+    const users = await getUserCollection();
+    const existing = await users.findOne({ idNumber });
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).json({ error: 'Invalid ID or password' });
+    if (existing) return res.status(400).json({ error: 'User already exists' });
 
-  res.json({ message: 'Login successful', name: user.name, isAdmin: user.isAdmin });
+    const hashed = await bcrypt.hash(password, 10);
+    const result = await users.insertOne({ idNumber, name, password: hashed, role });
+
+    res.json({ success: true, userId: result.insertedId });
+  } catch (err) {
+    console.error('Registration failed:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 module.exports = router;
