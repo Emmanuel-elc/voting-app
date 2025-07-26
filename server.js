@@ -1,39 +1,45 @@
-// Imports (top of file)
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
-
 const authRoute = require('./routes/auth');
 const registerRoute = require('./routes/register');
 const pollsRoute = require('./routes/polls');
 const candidatesRoute = require('./routes/candidates');
 
-// ✅ Initialize app AFTER imports
 const app = express();
-
-// Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API routes
+// ✅ MongoDB Atlas Connection
+const MONGO_URI = "mongodb+srv://emmanuelmuganzielc:prettyemma@cluster0.aj80utx.mongodb.net/voting-app?retryWrites=true&w=majority&appName=Cluster0";
+
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('✅ MongoDB connected successfully'))
+.catch((err) => {
+  console.error('❌ MongoDB connection failed:', err.message);
+  process.exit(1);
+});
+
+// ✅ Routes
 app.use('/auth', authRoute);
 app.use('/register', registerRoute);
 app.use('/polls', pollsRoute);
 app.use('/candidates', candidatesRoute);
 
-// Serve index.html for the root path
+// ✅ Serve homepage
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Connect to MongoDB and start server
+// ✅ Fallback for unknown routes
+app.use((req, res) => {
+  res.status(404).send('404 - Not Found');
+});
+
 const PORT = process.env.PORT || 10000;
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/voting-app')
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
-    });
-  })
-  .catch(err => {
-    console.error('MongoDB connection failed:', err.message);
-  });
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
