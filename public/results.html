@@ -2,85 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Voting Results</title>
+  <title>Poll Results</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 2rem;
-      background-color: #f9f9f9;
-    }
-    h1 {
-      text-align: center;
-    }
-    .poll {
-      background: #fff;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-    canvas {
-      max-width: 600px;
-      margin: auto;
-      display: block;
-    }
-    .tools {
-      text-align: center;
-      margin-top: 2rem;
-    }
-    button {
-      padding: 10px 15px;
-      margin: 0.5rem;
-      border: none;
-      background: #007bff;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-  </style>
 </head>
 <body>
-  <h1>📊 Voting Results (Admin Only)</h1>
-  <div class="tools">
-    <button onclick="window.print()">🖨️ Print Results</button>
-    <button onclick="downloadCSV()">⬇️ Download CSV</button>
-  </div>
+  <script>
+    // Redirect non-admins
+    fetch('/auth/check-admin').then(res => {
+      if (!res.ok) window.location.href = '/';
+    });
+  </script>
+
+  <h1>Poll Results</h1>
   <div id="resultsContainer"></div>
+  <button onclick="window.print()">🖨️ Print Results</button>
+  <button id="downloadCsv">⬇️ Download CSV</button>
 
   <script>
     async function loadResults() {
-      const res = await fetch('/polls?expired=true');
-      const polls = await res.json();
+      const urlParams = new URLSearchParams(window.location.search);
+      const pollId = urlParams.get('id');
+      if (!pollId) return alert("Poll ID not found");
+
+      const res = await fetch(`/polls/${pollId}`);
+      if (!res.ok) return alert("Failed to load poll");
+
+      const poll = await res.json();
+      document.title = "Results: " + poll.question;
+
       const container = document.getElementById('resultsContainer');
-      container.innerHTML = '';
+      container.innerHTML = `<h2>${poll.question}</h2><canvas id="resultsChart"></canvas>`;
 
-      if (polls.length === 0) {
-        container.innerHTML = '<p>No poll results available.</p>';
-        return;
-      }
-
-      polls.forEach((poll, index) => {
-        const div = document.createElement('div');
-        div.className = 'poll';
-
-        const title = document.createElement('h3');
-        title.textContent = `${index + 1}. ${poll.question}`;
-        div.appendChild(title);
-
-        const canvas = document.createElement('canvas');
-        canvas.id = 'chart_' + index;
-        div.appendChild(canvas);
-
-        container.appendChild(div);
-
-        drawChart(canvas.id, poll);
-      });
-    }
-
-    function drawChart(canvasId, poll) {
-      const ctx = document.getElementById(canvasId).getContext('2d');
+      const ctx = document.getElementById('resultsChart').getContext('2d');
       new Chart(ctx, {
         type: 'bar',
         data: {
@@ -97,31 +51,23 @@
           }
         }
       });
-    }
 
-    function downloadCSV() {
-      fetch('/polls?expired=true')
-        .then(res => res.json())
-        .then(polls => {
-          let csv = 'Poll Question,Option,Vote Count\n';
-          polls.forEach(poll => {
-            for (const [opt, count] of Object.entries(poll.options)) {
-              csv += `"${poll.question}","${opt}",${count}\n`;
-            }
-          });
-          const blob = new Blob([csv], { type: 'text/csv' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'voting-results.csv';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        });
+      // Enable CSV download
+      document.getElementById('downloadCsv').onclick = () => {
+        const csvRows = [
+          ['Option', 'Votes'],
+          ...Object.entries(poll.options)
+        ].map(row => row.join(',')).join('\n');
+
+        const blob = new Blob([csvRows], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `results-${poll.id}.csv`;
+        a.click();
+      };
     }
 
     loadResults();
   </script>
 </body>
 </html>
-

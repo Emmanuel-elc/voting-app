@@ -4,59 +4,47 @@
   <meta charset="UTF-8" />
   <title>Admin Dashboard</title>
   <link rel="stylesheet" href="style.css" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f2f5;
-      text-align: center;
-      padding: 2rem;
-    }
-
-    h1 {
-      margin-bottom: 2rem;
-    }
-
-    .admin-links {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1rem;
-      max-width: 600px;
-      margin: auto;
-    }
-
-    .card {
-      background: white;
-      border-radius: 10px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: transform 0.2s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-5px);
-    }
-
-    .card a {
-      text-decoration: none;
-      color: #007bff;
-      font-size: 1.1rem;
-      font-weight: bold;
-    }
-  </style>
 </head>
 <body>
-  <h1>🛠️ Admin Control Panel</h1>
+  <script>
+    // Redirect non-admins
+    fetch('/auth/check-admin').then(res => {
+      if (!res.ok) window.location.href = '/';
+    });
+  </script>
 
-  <div class="admin-links">
-    <div class="card">
-      <a href="/register.html">📋 Register Voter</a>
-    </div>
-    <div class="card">
-      <a href="/results.html">📊 View Results</a>
-    </div>
-    <div class="card">
-      <a href="/index.html">📥 Create & Manage Polls</a>
-    </div>
-  </div>
+  <h1>🛠️ Admin Dashboard</h1>
+
+  <ul style="list-style: none; padding: 0;">
+    <li><a href="/register" class="admin-btn">👥 Register New Voter</a></li>
+    <li><a href="/admin/results?id=1" class="admin-btn">📊 View Poll Results</a></li>
+    <li><a href="/" class="admin-btn" onclick="logout()">🔓 Logout</a></li>
+  </ul>
+
+  <script>
+    function logout() {
+      fetch('/auth/logout', { method: 'POST' })
+        .then(() => {
+          alert('Logged out');
+          window.location.href = '/';
+        });
+    }
+  </script>
+
+  <style>
+    .admin-btn {
+      display: inline-block;
+      margin: 10px 0;
+      padding: 12px 20px;
+      background-color: #333;
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+
+    .admin-btn:hover {
+      background-color: #555;
+    }
+  </style>
 </body>
 </html>
