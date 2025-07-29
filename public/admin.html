@@ -15,36 +15,46 @@
 
   <h1>🛠️ Admin Dashboard</h1>
 
-  <ul style="list-style: none; padding: 0;">
-    <li><a href="/register" class="admin-btn">👥 Register New Voter</a></li>
-    <li><a href="/admin/results?id=1" class="admin-btn">📊 View Poll Results</a></li>
-    <li><a href="/" class="admin-btn" onclick="logout()">🔓 Logout</a></li>
-  </ul>
+  <div>
+    <a href="/register"><button>Register Voters</button></a>
+    <a href="/results"><button>View & Export Results</button></a>
+  </div>
+
+  <h2>Total Registered Voters: <span id="voterCount">...</span></h2>
+
+  <h2>All Polls:</h2>
+  <ul id="pollList"></ul>
 
   <script>
-    function logout() {
-      fetch('/auth/logout', { method: 'POST' })
-        .then(() => {
-          alert('Logged out');
-          window.location.href = '/';
-        });
+    async function loadDashboard() {
+      // Load total voters
+      const voterRes = await fetch('/auth/voters');
+      const voters = await voterRes.json();
+      document.getElementById('voterCount').textContent = voters.length;
+
+      // Load polls
+      const pollRes = await fetch('/polls?expired=true');
+      const polls = await pollRes.json();
+      const list = document.getElementById('pollList');
+      list.innerHTML = '';
+
+      if (polls.length === 0) {
+        list.innerHTML = '<li>No polls found.</li>';
+        return;
+      }
+
+      polls.forEach(poll => {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = `/results.html?id=${poll.id}`;
+        link.textContent = poll.question;
+        link.target = '_blank';
+        li.appendChild(link);
+        list.appendChild(li);
+      });
     }
+
+    window.onload = loadDashboard;
   </script>
-
-  <style>
-    .admin-btn {
-      display: inline-block;
-      margin: 10px 0;
-      padding: 12px 20px;
-      background-color: #333;
-      color: #fff;
-      border-radius: 8px;
-      text-decoration: none;
-    }
-
-    .admin-btn:hover {
-      background-color: #555;
-    }
-  </style>
 </body>
 </html>
