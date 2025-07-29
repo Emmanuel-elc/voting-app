@@ -4,40 +4,79 @@
   <meta charset="UTF-8" />
   <title>Register Voter</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      width: 100%;
+      background: #007bff;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .success {
+      text-align: center;
+      color: green;
+      margin-top: 1rem;
+    }
+  </style>
 </head>
 <body>
-  <h1>🗳️ Admin Voter Registration</h1>
-
+  <h1>🧾 Register New Voter</h1>
   <form id="registerForm">
-    <input type="text" id="id" placeholder="Voter ID Number" required />
-    <input type="text" id="name" placeholder="Voter Name" required />
-    <input type="password" id="password" placeholder="Password" required />
-    <input type="password" id="adminKey" placeholder="Admin Password" required />
-    <button type="submit">Register Voter</button>
+    <input type="text" id="voterId" placeholder="Voter ID Number" required />
+    <input type="text" id="voterName" placeholder="Full Name" required />
+    <input type="password" id="voterPassword" placeholder="Password" required />
+    <button type="submit">Register</button>
   </form>
-
-  <p id="message"></p>
+  <p id="message" class="success"></p>
 
   <script>
     document.getElementById('registerForm').onsubmit = async (e) => {
       e.preventDefault();
+      const id = document.getElementById('voterId').value.trim();
+      const name = document.getElementById('voterName').value.trim();
+      const password = document.getElementById('voterPassword').value.trim();
 
-      const payload = {
-        id: document.getElementById('id').value,
-        name: document.getElementById('name').value,
-        password: document.getElementById('password').value,
-        adminKey: document.getElementById('adminKey').value,
-      };
-
-      const res = await fetch('/register', {
+      const res = await fetch('/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ id, name, password })
       });
 
       const msg = document.getElementById('message');
-      const data = await res.json();
-      msg.textContent = data.message || data.error;
+      if (res.ok) {
+        msg.textContent = '✅ Voter registered successfully!';
+        document.getElementById('registerForm').reset();
+      } else {
+        const data = await res.json();
+        msg.textContent = '❌ ' + (data.error || 'Registration failed');
+        msg.style.color = 'red';
+      }
     };
   </script>
 </body>
