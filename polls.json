@@ -1,23 +1,16 @@
-
-
 [
   {
-    "id": "10001",
-    "question": "Who should be the next Head Prefect?",
-    "options": {
-      "Alice A.": {
-        "votes": 12,
-        "image": "https://via.placeholder.com/100?text=Alice"
-      },
-      "Brian B.": {
-        "votes": 8,
-        "image": "https://via.placeholder.com/100?text=Brian"
-      },
-      "Clara C.": {
-        "votes": 6,
-        "image": "https://via.placeholder.com/100?text=Clara"
-      }
-    },
-    "expiresAt": "2025-12-31T23:59:00.000Z"
+    "id": "abc123",
+    "question": "Who should be the new Head Prefect?",
+    "candidates": [
+      { "name": "Alice", "photo": "alice.jpg", "votes": 0 },
+      { "name": "Brian", "photo": "brian.jpg", "votes": 0 }
+    ],
+    "createdAt": "2025-07-29T10:00:00.000Z",
+    "expiresAt": "2025-08-01T10:00:00.000Z"
   }
 ]
+
+
+
+

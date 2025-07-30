@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vote</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Welcome, <span id="voterName"></span></h1>
+  <p>Select a poll to vote:</p>
+
+  <ul id="pollList"></ul>
+  <hr />
+  <div id="pollContainer"></div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem('voterUser'));
+    if (!user) {
+      alert('Not logged in');
+      window.location.href = '/';
+    } else {
+      document.getElementById('voterName').textContent = user.name;
+    }
+
+    const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '[]');
+
+    async function loadPolls() {
+      const res = await fetch('/polls');
+      const polls = await res.json();
+      const list = document.getElementById('pollList');
+      list.innerHTML = '';
+
+      if (polls.length === 0) {
+        list.innerHTML = '<li>No active polls available.</li>';
+        return;
+      }
+
+      polls.forEach(poll => {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = poll.question;
+        link.onclick = (e) => {
+          e.preventDefault();
+          renderPoll(poll);
+        };
+        li.appendChild(link);
+        list.appendChild(li);
+      });
+    }
+
+    function renderPoll(poll) {
+      const container = document.getElementById('pollContainer');
+      const alreadyVoted = votedPolls.includes(`${user.id}-${poll.id}`);
+
+      let html = `<h2>${poll.question}</h2>`;
+
+      if (alreadyVoted) {
+        html += `<p><strong>You have already voted on this poll.</strong></p>`;
+        container.innerHTML = html;
+        return;
+      }
+
+      html += `
+        <form id="voteForm">
+          ${poll.candidates.map(c => `
+            <label>
+              <input type="radio" name="option" value="${c.name}" />
+              <img src="/images/${c.photo}" alt="${c.name}" width="80" /><br/>
+              ${c.name}
+            </label><br/>
+          `).join('')}
+          <button type="submit">Submit Vote</button>
+        </form>
+      `;
+      container.innerHTML = html;
+
+      document.getElementById('voteForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const option = document.querySelector('input[name="option"]:checked')?.value;
+        if (!option) return alert('Please select a candidate.');
+
+        const res = await fetch(`/polls/${poll.id}/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ option })
+        });
+
+        if (res.ok) {
+          alert('Your vote has been submitted!');
+          votedPolls.push(`${user.id}-${poll.id}`);
+          localStorage.setItem('votedPolls', JSON.stringify(votedPolls));
+          container.innerHTML = `<p><strong>Thank you for voting!</strong></p>`;
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Failed to vote.');
+        }
+      };
+    }
+
+    window.onload = loadPolls;
+  </script>
+</body>
+</html>
