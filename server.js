@@ -39,3 +39,19 @@ mongoose
     console.error('❌ MongoDB connection failed:', err);
   });
 
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true, // Optional: safe to remove in MongoDB v4+ drivers
+  useUnifiedTopology: true // Optional: safe to remove in MongoDB v4+ drivers
+})
+  .then(() => console.log('✅ MongoDB connected successfully'))
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1); // Exit on failure
+  });
+
+// Set server port
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
