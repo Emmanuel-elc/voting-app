@@ -20,6 +20,7 @@ function saveUsers(users) {
 }
 
 const { validateToken } = require('../lib/adminSessions');
+const { listTokens, revokeToken } = require('../lib/adminSessions');
 
 function getTokenFromReq(req) {
   // Try Authorization header first (Bearer <token>)
@@ -111,6 +112,37 @@ router.get('/voters', (req, res) => {
   } catch (e) {
     console.error('Failed to load voters', e);
     res.status(500).json({ success: false, error: 'Failed to load voters' });
+  }
+});
+
+// List admin tokens (admin-only)
+router.get('/tokens', (req, res) => {
+  const token = getTokenFromReq(req);
+  const userId = token ? validateToken(token) : null;
+  if (!userId) return res.status(403).json({ success: false, error: 'Admin token required' });
+  try {
+    const tokens = listTokens();
+    res.json({ success: true, data: tokens });
+  } catch (e) {
+    console.error('Failed to list tokens', e);
+    res.status(500).json({ success: false, error: 'Failed to list tokens' });
+  }
+});
+
+// Revoke an admin token (admin-only)
+router.post('/tokens/revoke', (req, res) => {
+  const token = getTokenFromReq(req);
+  const userId = token ? validateToken(token) : null;
+  if (!userId) return res.status(403).json({ success: false, error: 'Admin token required' });
+
+  const { tokenToRevoke } = req.body;
+  if (!tokenToRevoke) return res.status(400).json({ success: false, error: 'tokenToRevoke required' });
+  try {
+    revokeToken(tokenToRevoke);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Failed to revoke token', e);
+    res.status(500).json({ success: false, error: 'Failed to revoke token' });
   }
 });
 

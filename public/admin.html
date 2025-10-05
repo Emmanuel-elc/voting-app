@@ -28,6 +28,15 @@
     <a href="/results"><button>View & Export Results</button></a>
   </div>
 
+  <section class="side-card" style="margin-top:1rem;">
+    <h3>Admin Tokens</h3>
+    <p class="muted">List of active admin tokens (you can revoke tokens here).</p>
+    <div id="tokensSection">
+      <p id="tokensLoading">Loading tokens…</p>
+      <ul id="tokensList"></ul>
+    </div>
+  </section>
+
   <h2>Total Registered Voters: <span id="voterCount">...</span></h2>
 
   <h2>All Polls:</h2>
@@ -75,6 +84,46 @@
         // open protected register page with token in query string
         window.location.href = `/register.html?adminToken=${encodeURIComponent(token)}`;
     };
+
+      // Token management
+      async function loadTokens() {
+        const token = localStorage.getItem('adminToken');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        try {
+          const res = await fetch('/auth/tokens', { headers });
+          const rr = await res.json();
+          document.getElementById('tokensLoading').style.display = 'none';
+          const list = document.getElementById('tokensList');
+          list.innerHTML = '';
+          if (!res.ok || !rr.success) return list.innerHTML = '<li>Unable to load tokens</li>';
+          const tokens = rr.data || {};
+          const entries = Object.entries(tokens);
+          if (entries.length === 0) return list.innerHTML = '<li>No tokens</li>';
+          entries.forEach(([t, info]) => {
+            const li = document.createElement('li');
+            const created = new Date(info.created).toLocaleString();
+            li.innerHTML = `<code style="word-break:break-all">${t}</code> <small class="muted">(${info.userId} @ ${created})</small> `;
+            const btn = document.createElement('button');
+            btn.textContent = 'Revoke';
+            btn.onclick = async () => {
+              if (!confirm('Revoke this token?')) return;
+              const r = await fetch('/auth/tokens/revoke', { method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ tokenToRevoke: t }) });
+              const jr = await r.json();
+              if (r.ok && jr.success) { alert('Revoked'); loadTokens(); }
+              else alert(jr.error || 'Failed to revoke');
+            };
+            li.appendChild(btn);
+            list.appendChild(li);
+          });
+        } catch (e) {
+          document.getElementById('tokensLoading').textContent = 'Failed to load tokens';
+        }
+      }
+
+      // load tokens when dashboard loads and every 30s
+      setTimeout(loadTokens, 300);
+      setInterval(loadTokens, 30000);
   </script>
 </body>
 </html>

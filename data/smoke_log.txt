@@ -1,0 +1,9 @@
+--- SMOKE START 2025-10-05T17:01:28.507Z
+Reading admin token...
+Using token 51ae035f55...
+/auth/check-admin {"error":""}
+/auth/voters {"error":""}
+/polls POST {"error":""}
+/auth/register {"error":""}
+/auth/login {"error":""}
+SMOKE COMPLETE
