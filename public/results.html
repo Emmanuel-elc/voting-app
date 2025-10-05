@@ -8,10 +8,10 @@
 </head>
 <body>
   <script>
-    // Redirect non-admins
+    // Redirect non-admins (best-effort)
     fetch('/auth/check-admin').then(res => {
       if (!res.ok) window.location.href = '/';
-    });
+    }).catch(() => {});
   </script>
 
   <h1>Poll Results</h1>
@@ -25,10 +25,13 @@
       const pollId = urlParams.get('id');
       if (!pollId) return alert("Poll ID not found");
 
-      const res = await fetch(`/polls/${pollId}`);
-      if (!res.ok) return alert("Failed to load poll");
+  // There is no direct GET /polls/:id on the server, so fetch all and find
+  const res = await fetch('/polls?expired=true');
+  const result = await res.json();
+  if (!res.ok || !result.success) return alert('Failed to load poll');
 
-      const poll = await res.json();
+  const poll = result.data.find(p => p.id === pollId);
+  if (!poll) return alert('Poll not found');
       document.title = "Results: " + poll.question;
 
       const container = document.getElementById('resultsContainer');

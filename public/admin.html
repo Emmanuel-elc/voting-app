@@ -16,7 +16,7 @@
   <h1>🛠️ Admin Dashboard</h1>
 
   <div>
-    <a href="/register"><button>Register Voters</button></a>
+    <button id="openRegister">Register Voters</button>
     <a href="/results"><button>View & Export Results</button></a>
   </div>
 
@@ -27,14 +27,20 @@
 
   <script>
     async function loadDashboard() {
-      // Load total voters
-      const voterRes = await fetch('/auth/voters');
-      const voters = await voterRes.json();
-      document.getElementById('voterCount').textContent = voters.length;
+        // Load total voters
+        try {
+          const voterRes = await fetch('/auth/voters');
+          const voterResult = await voterRes.json();
+          const voters = (voterRes.ok && voterResult.success) ? voterResult.data : [];
+          document.getElementById('voterCount').textContent = voters.length;
+        } catch (e) {
+          document.getElementById('voterCount').textContent = 'N/A';
+        }
 
-      // Load polls
-      const pollRes = await fetch('/polls?expired=true');
-      const polls = await pollRes.json();
+        // Load polls
+        const pollRes = await fetch('/polls?expired=true');
+        const pollResult = await pollRes.json();
+        const polls = (pollRes.ok && pollResult.success) ? pollResult.data : [];
       const list = document.getElementById('pollList');
       list.innerHTML = '';
 
@@ -55,6 +61,12 @@
     }
 
     window.onload = loadDashboard;
+    document.getElementById('openRegister').onclick = () => {
+      const token = localStorage.getItem('adminToken');
+      if (!token) return alert('Admin token missing. Please login as admin.');
+      // open protected register page with token
+      window.location.href = `/register.html?adminToken=${encodeURIComponent(token)}`;
+    };
   </script>
 </body>
 </html>

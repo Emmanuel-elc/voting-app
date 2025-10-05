@@ -15,7 +15,7 @@
   <div id="pollContainer"></div>
 
   <script>
-    const user = JSON.parse(localStorage.getItem('voterUser'));
+    const user = JSON.parse(localStorage.getItem('currentUser'));
     if (!user) {
       alert('Not logged in');
       window.location.href = '/';
@@ -26,8 +26,9 @@
     const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '[]');
 
     async function loadPolls() {
-      const res = await fetch('/polls');
-      const polls = await res.json();
+  const res = await fetch('/polls');
+  const result = await res.json();
+  const polls = (res.ok && result.success) ? result.data : [];
       const list = document.getElementById('pollList');
       list.innerHTML = '';
 
@@ -81,20 +82,23 @@
         const option = document.querySelector('input[name="option"]:checked')?.value;
         if (!option) return alert('Please select a candidate.');
 
+        const body = { option };
+        if (user?.id) body.userId = user.id;
+
         const res = await fetch(`/polls/${poll.id}/vote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ option })
+          body: JSON.stringify(body)
         });
 
-        if (res.ok) {
+        const result = await res.json();
+        if (res.ok && result.success) {
           alert('Your vote has been submitted!');
           votedPolls.push(`${user.id}-${poll.id}`);
           localStorage.setItem('votedPolls', JSON.stringify(votedPolls));
           container.innerHTML = `<p><strong>Thank you for voting!</strong></p>`;
         } else {
-          const err = await res.json();
-          alert(err.error || 'Failed to vote.');
+          alert(result.error || 'Failed to vote.');
         }
       };
     }

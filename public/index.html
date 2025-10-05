@@ -17,13 +17,8 @@
       <input type="password" id="loginPassword" placeholder="Password" required />
       <button type="submit">Login</button>
     </form>
-    <h3>Register</h3>
-    <form id="registerForm">
-      <input type="text" id="registerId" placeholder="ID Number" required />
-      <input type="text" id="registerName" placeholder="Full Name" required />
-      <input type="password" id="registerPassword" placeholder="Password" required />
-      <button type="submit">Register</button>
-    </form>
+    <!-- Registration moved to admin-only page -->
+    <p>If you are an admin, register voters from the <a href="/admin.html">Admin Dashboard</a>.</p>
   </div>
 
   <!-- Welcome & Logout -->
@@ -93,38 +88,19 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, password })
       });
-
       const result = await res.json();
-      if (res.ok) {
-        currentUser = result.user;
+      if (res.ok && result.success) {
+        currentUser = result.data;
         saveUser(currentUser);
+        // store adminToken when returned
+        if (result.adminToken) localStorage.setItem('adminToken', result.adminToken);
         showUI();
       } else {
         alert(result.error || 'Login failed');
       }
     };
 
-    // Register
-    document.getElementById('registerForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('registerId').value;
-      const name = document.getElementById('registerName').value;
-      const password = document.getElementById('registerPassword').value;
-
-      const res = await fetch('/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name, password })
-      });
-
-      const result = await res.json();
-      if (res.ok) {
-        alert('Registered! You can now log in.');
-        document.getElementById('registerForm').reset();
-      } else {
-        alert(result.error || 'Registration failed');
-      }
-    };
+    // Registration is admin-only and performed via /admin.html -> register.html
 
     // Create Poll
     document.getElementById('createPollForm').onsubmit = async (e) => {
@@ -148,13 +124,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
-      if (res.ok) {
+      const result = await res.json();
+      if (res.ok && result.success) {
         alert('Poll created');
         e.target.reset();
         loadPolls();
       } else {
-        alert('Failed to create poll');
+        alert(result.error || 'Failed to create poll');
       }
     };
 
@@ -163,8 +139,9 @@
 
     async function loadPolls() {
       const showExpired = document.getElementById('showExpiredToggle').checked;
-      const res = await fetch(`/polls${showExpired ? '?expired=true' : ''}`);
-      const polls = await res.json();
+  const res = await fetch(`/polls${showExpired ? '?expired=true' : ''}`);
+  const result = await res.json();
+  const polls = (res.ok && result.success) ? result.data : [];
       const list = document.getElementById('pollList');
       list.innerHTML = '';
 
@@ -225,19 +202,23 @@
           const selected = document.querySelector('input[name="option"]:checked')?.value;
           if (!selected) return alert('Select an option');
 
+          const body = { option: selected };
+          if (currentUser?.id) body.userId = currentUser.id;
+
           const res = await fetch(`/polls/${poll.id}/vote`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ option: selected })
+            body: JSON.stringify(body)
           });
 
-          if (res.ok) {
-            const updated = await res.json();
+          const result = await res.json();
+          if (res.ok && result.success) {
+            // update local voted list
             voted.push(poll.id);
             localStorage.setItem('votedPolls', JSON.stringify(voted));
-            renderPoll(updated.poll);
+            renderPoll(result.data);
           } else {
-            alert('Failed to vote');
+            alert(result.error || 'Failed to vote');
           }
         };
       }

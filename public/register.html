@@ -51,30 +51,38 @@
     <input type="text" id="voterId" placeholder="Voter ID Number" required />
     <input type="text" id="voterName" placeholder="Full Name" required />
     <input type="password" id="voterPassword" placeholder="Password" required />
+    <input type="password" id="adminKey" placeholder="Admin Key" required />
     <button type="submit">Register</button>
   </form>
   <p id="message" class="success"></p>
 
   <script>
+    // Allow only admin users to use this page (best-effort guard)
+    const current = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (!current || current.role !== 'admin') {
+      alert('Admin access required');
+      window.location.href = '/';
+    }
+
     document.getElementById('registerForm').onsubmit = async (e) => {
       e.preventDefault();
       const id = document.getElementById('voterId').value.trim();
       const name = document.getElementById('voterName').value.trim();
       const password = document.getElementById('voterPassword').value.trim();
+      const adminKey = document.getElementById('adminKey').value.trim();
 
       const res = await fetch('/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name, password })
+        body: JSON.stringify({ id, name, password, adminKey })
       });
-
       const msg = document.getElementById('message');
-      if (res.ok) {
+      const result = await res.json();
+      if (res.ok && result.success) {
         msg.textContent = '✅ Voter registered successfully!';
         document.getElementById('registerForm').reset();
       } else {
-        const data = await res.json();
-        msg.textContent = '❌ ' + (data.error || 'Registration failed');
+        msg.textContent = '❌ ' + (result.error || 'Registration failed');
         msg.style.color = 'red';
       }
     };

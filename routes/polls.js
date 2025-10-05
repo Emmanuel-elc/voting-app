@@ -30,7 +30,7 @@ router.get('/', (req, res) => {
     ? polls
     : polls.filter(p => !p.expiresAt || new Date(p.expiresAt).getTime() > now);
 
-  res.json(filtered);
+  res.json({ success: true, data: filtered });
 });
 
 // Create a new poll
@@ -50,23 +50,52 @@ router.post('/', (req, res) => {
 
   polls.push(newPoll);
   savePolls(polls);
-  res.status(201).json(newPoll);
+  res.status(201).json({ success: true, data: newPoll });
 });
 
 // Vote
 router.post('/:id/vote', (req, res) => {
   const { id } = req.params;
-  const { option } = req.body;
+  const { option, userId } = req.body;
   const polls = loadPolls();
   const poll = polls.find(p => p.id === id);
 
-  if (!poll || !poll.options[option]) {
-    return res.status(400).json({ error: 'Invalid poll or option' });
+  const log = (msg, ...args) => {
+    if ((process.env.LOG_LEVEL || '').toLowerCase() === 'debug') console.log(msg, ...args);
+  };
+
+  log('vote handler -> id:', id, 'option:', option, 'userId:', userId);
+  log('poll found:', poll ? Object.assign({}, poll, { options: Object.keys(poll.options) }) : null);
+
+  if (!poll || !(option in poll.options)) {
+    return res.status(400).json({ success: false, error: 'Invalid poll or option' });
   }
 
-  poll.options[option]++;
+  // If userId provided, enforce one vote per user per poll
+  if (userId) {
+    try {
+      const usersFile = path.join(__dirname, '..', 'data', 'users.json');
+      const users = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
+      const user = users.find(u => u.id === userId);
+      if (!user) return res.status(400).json({ success: false, error: 'Invalid user' });
+      user.votedPolls = user.votedPolls || [];
+      if (user.votedPolls.includes(id)) {
+        return res.status(400).json({ success: false, error: 'User already voted for this poll' });
+      }
+
+      // Register the vote for the user
+      user.votedPolls.push(id);
+      fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+    } catch (err) {
+      console.error('Failed to update user vote record:', err);
+      return res.status(500).json({ success: false, error: 'Failed to record vote' });
+    }
+  }
+
+  // Safely increment numeric values (JSON may store numbers)
+  poll.options[option] = (Number(poll.options[option]) || 0) + 1;
   savePolls(polls);
-  res.json({ message: 'Vote counted', poll });
+  res.json({ success: true, data: poll });
 });
 
 // Delete a poll

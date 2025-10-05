@@ -33,7 +33,7 @@ function loadPolls() {
               <input type="radio" name="vote-${p.id}" value="${opt}"> ${opt} (${p.options[opt]})
             </label><br>
           `).join('')}
-          <button onclick="vote(${p.id})">Vote</button>
+          <button onclick="vote('${p.id}')">Vote</button>
         </div><hr>
       `).join('');
     });

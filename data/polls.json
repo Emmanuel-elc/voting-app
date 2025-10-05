@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "1759680630383",
+    "question": "president",
+    "options": {
+      "Emma": 1,
+      "Amos": 0,
+      "You": 0
+    },
+    "expiresAt": "2025-10-06T16:10:00.000Z"
+  }
+]

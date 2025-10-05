@@ -1,0 +1,40 @@
+[
+  {
+    "id": "smoketest",
+    "name": "Smoke Test",
+    "password": "$2b$10$dHli6Tu.N9B6lnvpvEp.W.7TGWK09/e25Mn7QRZTkJMBFFJigaZme",
+    "role": "voter"
+  },
+  {
+    "id": "smoketest2",
+    "name": "Smoke Test 2",
+    "password": "$2b$10$cWewmWNn9t77hmgHT11OrOSqokF8xHNallR/vS3lTzSoPDllf5FOy",
+    "role": "voter",
+    "votedPolls": [
+      "1759679219091"
+    ]
+  },
+  {
+    "id": "adminreg",
+    "name": "Admin Reg",
+    "password": "$2b$10$Np0pWejuQtotCdnhORCu3.2AYSlYZWt8JkBZNlKPgVzc7nRit7IwG",
+    "role": "voter",
+    "votedPolls": []
+  },
+  {
+    "votedPolls": [
+      "1759680630383"
+    ],
+    "role": "admin",
+    "name": "Super Admin",
+    "id": "superadmin",
+    "password": "$2b$10$8.tNcB7TVRxE8zZxBLbNOu0sbrxyHXVAeZtsoj4FiqX7wvs2xz.Ie"
+  },
+  {
+    "id": "voter1",
+    "name": "Voter One",
+    "password": "$2b$10$VmTlDhCPvWRPjEbAKrG/4.1nTR.za59kqDypBWKfjjjElGHv.qjri",
+    "role": "voter",
+    "votedPolls": []
+  }
+]
