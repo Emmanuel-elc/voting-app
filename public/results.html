@@ -8,10 +8,20 @@
 </head>
 <body>
   <script>
-    // Redirect non-admins (best-effort)
-    fetch('/auth/check-admin').then(res => {
-      if (!res.ok) window.location.href = '/';
-    }).catch(() => {});
+    // Redirect non-admins (best-effort) — include adminToken if available
+    (async function() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('adminToken') || localStorage.getItem('adminToken');
+      const headers = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      try {
+        const res = await fetch('/auth/check-admin', { headers });
+        if (!res.ok) return window.location.href = '/';
+      } catch (e) {
+        // ignore and redirect to home
+        return window.location.href = '/';
+      }
+    })();
   </script>
 
   <h1>Poll Results</h1>

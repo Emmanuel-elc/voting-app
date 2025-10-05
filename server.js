@@ -38,7 +38,10 @@ app.get('/', (req, res) => {
 app.get('/register.html', (req, res, next) => {
   try {
     const { validateToken } = require('./lib/adminSessions');
-    const token = req.query.adminToken || req.headers['x-admin-token'];
+    // accept token from query, x-admin-token header, or Authorization: Bearer <token>
+    let token = req.query.adminToken || req.headers['x-admin-token'];
+    const auth = req.headers['authorization'] || req.headers['Authorization'];
+    if (!token && auth && auth.startsWith('Bearer ')) token = auth.slice(7);
     const userId = validateToken(token);
     if (!userId) return res.status(403).send('Forbidden');
     return res.sendFile(path.join(__dirname, 'public', 'register.html'));

@@ -58,8 +58,12 @@
 
   <script>
     // Allow only admin users to use this page (best-effort guard)
+    // Best-effort guard: allow admins or presence of adminToken in query/localStorage
     const current = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (!current || current.role !== 'admin') {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromQuery = urlParams.get('adminToken');
+    const token = tokenFromQuery || localStorage.getItem('adminToken');
+    if (!token && (!current || current.role !== 'admin')) {
       alert('Admin access required');
       window.location.href = '/';
     }
@@ -71,10 +75,15 @@
       const password = document.getElementById('voterPassword').value.trim();
       const adminKey = document.getElementById('adminKey').value.trim();
 
+      const payload = { id, name, password };
+      // prefer token if present
+      if (token) payload.adminToken = token; else payload.adminKey = adminKey;
+
+      const headers = { 'Content-Type': 'application/json' };
       const res = await fetch('/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name, password, adminKey })
+        headers,
+        body: JSON.stringify(payload)
       });
       const msg = document.getElementById('message');
       const result = await res.json();

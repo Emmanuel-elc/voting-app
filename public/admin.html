@@ -7,10 +7,18 @@
 </head>
 <body>
   <script>
-    // Redirect non-admins
-    fetch('/auth/check-admin').then(res => {
-      if (!res.ok) window.location.href = '/';
-    });
+    // Redirect non-admins — send adminToken if available
+    (async function() {
+      const token = localStorage.getItem('adminToken');
+      const headers = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      try {
+        const res = await fetch('/auth/check-admin', { headers });
+        if (!res.ok) return window.location.href = '/';
+      } catch (e) {
+        return window.location.href = '/';
+      }
+    })();
   </script>
 
   <h1>🛠️ Admin Dashboard</h1>
@@ -63,9 +71,9 @@
     window.onload = loadDashboard;
     document.getElementById('openRegister').onclick = () => {
       const token = localStorage.getItem('adminToken');
-      if (!token) return alert('Admin token missing. Please login as admin.');
-      // open protected register page with token
-      window.location.href = `/register.html?adminToken=${encodeURIComponent(token)}`;
+        if (!token) return alert('Admin token missing. Please login as admin.');
+        // open protected register page with token in query string
+        window.location.href = `/register.html?adminToken=${encodeURIComponent(token)}`;
     };
   </script>
 </body>

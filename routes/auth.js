@@ -19,6 +19,18 @@ function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
+const { validateToken } = require('../lib/adminSessions');
+
+function getTokenFromReq(req) {
+  // Try Authorization header first (Bearer <token>)
+  const auth = req.headers && req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) return auth.slice(7);
+  // fallback to query or body
+  if (req.query && req.query.adminToken) return req.query.adminToken;
+  if (req.body && req.body.adminToken) return req.body.adminToken;
+  return null;
+}
+
 // Login: expects { id, password }
 router.post('/login', async (req, res) => {
   const { id, password } = req.body;
@@ -56,8 +68,10 @@ router.post('/login', async (req, res) => {
 router.post('/register', async (req, res) => {
   const { id, name, password, adminKey } = req.body;
   const ADMIN_KEY = process.env.ADMIN_KEY || 'admin123';
-  // Only allow registration when correct adminKey is provided
-  if (adminKey !== ADMIN_KEY) return res.status(403).json({ success: false, error: 'Admin key required' });
+  // Allow registration when correct adminKey is provided OR when a valid adminToken is supplied
+  const token = getTokenFromReq(req);
+  const tokenValidUser = token ? validateToken(token) : null;
+  if (adminKey !== ADMIN_KEY && !tokenValidUser) return res.status(403).json({ success: false, error: 'Admin key or admin token required' });
   if (!id || !name || !password) return res.status(400).json({ success: false, error: 'Missing fields' });
 
   try {
@@ -73,6 +87,30 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error('Registration failed:', err);
     res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Admin token check - supports Authorization: Bearer <token> or ?adminToken=
+router.get('/check-admin', (req, res) => {
+  const token = getTokenFromReq(req);
+  const userId = token ? validateToken(token) : null;
+  if (!userId) return res.status(403).json({ success: false, error: 'Invalid admin token' });
+  return res.json({ success: true, data: { userId } });
+});
+
+// List voters (admin only)
+router.get('/voters', (req, res) => {
+  const token = getTokenFromReq(req);
+  const userId = token ? validateToken(token) : null;
+  if (!userId) return res.status(403).json({ success: false, error: 'Admin token required' });
+
+  try {
+    const users = loadUsers();
+    const out = users.map(u => ({ id: u.id, name: u.name, role: u.role || 'voter', votedPolls: u.votedPolls || [] }));
+    res.json({ success: true, data: out });
+  } catch (e) {
+    console.error('Failed to load voters', e);
+    res.status(500).json({ success: false, error: 'Failed to load voters' });
   }
 });
 
