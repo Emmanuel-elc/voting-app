@@ -1,9 +1,9 @@
---- SMOKE START 2025-10-05T17:04:19.104Z
+--- SMOKE START 2025-10-06T08:26:04.119Z
 Reading admin token...
 Using token 51ae035f55...
-/auth/check-admin {"error":""}
-/auth/voters {"error":""}
-/polls POST {"error":""}
-/auth/register {"error":""}
-/auth/login {"error":""}
+/auth/check-admin {"error":"Error: connect ECONNREFUSED 127.0.0.1:10000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)"}
+/auth/voters {"error":"Error: connect ECONNREFUSED 127.0.0.1:10000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)"}
+/polls POST {"error":"Error: connect ECONNREFUSED 127.0.0.1:10000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)"}
+/auth/register {"error":"Error: connect ECONNREFUSED 127.0.0.1:10000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)"}
+/auth/login {"error":"Error: connect ECONNREFUSED 127.0.0.1:10000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)"}
 SMOKE COMPLETE

@@ -4,6 +4,8 @@ const LOG = 'data/smoke_log.txt';
 function log(...args){ fs.appendFileSync(LOG, args.map(a=>typeof a==='string'?a:JSON.stringify(a)).join(' ') + '\n'); }
 function readJSON(path){ return JSON.parse(fs.readFileSync(path,'utf8')); }
 function request(options, body){
+  // ensure we use IPv4 loopback to avoid localhost resolution issues
+  options.hostname = options.hostname === 'localhost' ? '127.0.0.1' : options.hostname;
   return new Promise((resolve, reject)=>{
     const req = http.request(options, res=>{
       let d=''; res.on('data',c=>d+=c); res.on('end',()=>{
@@ -11,7 +13,7 @@ function request(options, body){
         resolve({ status: res.statusCode, body: parsed || d });
       });
     });
-    req.on('error', e=> resolve({ error: e.message }));
+    req.on('error', e=> resolve({ error: (e && e.stack) ? e.stack : String(e) }));
     if (body) req.write(JSON.stringify(body));
     req.end();
   });

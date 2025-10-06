@@ -19,8 +19,34 @@ function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-const { validateToken } = require('../lib/adminSessions');
-const { listTokens, revokeToken } = require('../lib/adminSessions');
+const { validateToken, listTokens, revokeToken } = require('../lib/adminSessions');
+// List all admin tokens (admin only)
+router.get('/tokens', (req, res) => {
+  const token = getTokenFromReq(req);
+  const userId = token ? validateToken(token) : null;
+  if (!userId) return res.status(403).json({ success: false, error: 'Admin token required' });
+  try {
+    const tokens = listTokens();
+    res.json({ success: true, data: tokens });
+  } catch (e) {
+    res.status(500).json({ success: false, error: 'Failed to list tokens' });
+  }
+});
+
+// Revoke an admin token (admin only)
+router.post('/revoke-token', (req, res) => {
+  const adminToken = getTokenFromReq(req);
+  const userId = adminToken ? validateToken(adminToken) : null;
+  if (!userId) return res.status(403).json({ success: false, error: 'Admin token required' });
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ success: false, error: 'Missing token to revoke' });
+  try {
+    revokeToken(token);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: 'Failed to revoke token' });
+  }
+});
 
 function getTokenFromReq(req) {
   // Try Authorization header first (Bearer <token>)
@@ -115,35 +141,6 @@ router.get('/voters', (req, res) => {
   }
 });
 
-// List admin tokens (admin-only)
-router.get('/tokens', (req, res) => {
-  const token = getTokenFromReq(req);
-  const userId = token ? validateToken(token) : null;
-  if (!userId) return res.status(403).json({ success: false, error: 'Admin token required' });
-  try {
-    const tokens = listTokens();
-    res.json({ success: true, data: tokens });
-  } catch (e) {
-    console.error('Failed to list tokens', e);
-    res.status(500).json({ success: false, error: 'Failed to list tokens' });
-  }
-});
-
-// Revoke an admin token (admin-only)
-router.post('/tokens/revoke', (req, res) => {
-  const token = getTokenFromReq(req);
-  const userId = token ? validateToken(token) : null;
-  if (!userId) return res.status(403).json({ success: false, error: 'Admin token required' });
-
-  const { tokenToRevoke } = req.body;
-  if (!tokenToRevoke) return res.status(400).json({ success: false, error: 'tokenToRevoke required' });
-  try {
-    revokeToken(tokenToRevoke);
-    res.json({ success: true });
-  } catch (e) {
-    console.error('Failed to revoke token', e);
-    res.status(500).json({ success: false, error: 'Failed to revoke token' });
-  }
-});
+// (token endpoints implemented earlier in the file)
 
 module.exports = router;

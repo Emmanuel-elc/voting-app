@@ -44,20 +44,63 @@
 
   <script>
     async function loadDashboard() {
-        // Load total voters
-        try {
-          const voterRes = await fetch('/auth/voters');
-          const voterResult = await voterRes.json();
-          const voters = (voterRes.ok && voterResult.success) ? voterResult.data : [];
-          document.getElementById('voterCount').textContent = voters.length;
-        } catch (e) {
-          document.getElementById('voterCount').textContent = 'N/A';
-        }
+      const token = localStorage.getItem('adminToken');
+      const headers = token ? { Authorization: 'Bearer ' + token } : {};
 
-        // Load polls
-        const pollRes = await fetch('/polls?expired=true');
-        const pollResult = await pollRes.json();
-        const polls = (pollRes.ok && pollResult.success) ? pollResult.data : [];
+      // Load total voters
+      try {
+        const voterRes = await fetch('/auth/voters', { headers });
+        const voterResult = await voterRes.json();
+        const voters = (voterRes.ok && voterResult.success) ? voterResult.data : [];
+        document.getElementById('voterCount').textContent = voters.length;
+      } catch (e) {
+        document.getElementById('voterCount').textContent = 'N/A';
+      }
+
+      // Load admin tokens
+      try {
+        document.getElementById('tokensLoading').style.display = 'block';
+        const res = await fetch('/auth/tokens', { headers });
+        const result = await res.json();
+        const tokens = (res.ok && result.success) ? result.data : [];
+        const list = document.getElementById('tokensList');
+        list.innerHTML = '';
+        document.getElementById('tokensLoading').style.display = 'none';
+        if (tokens.length === 0) {
+          list.innerHTML = '<li>No admin tokens found.</li>';
+        } else {
+          tokens.forEach(t => {
+            const li = document.createElement('li');
+            li.textContent = `${t.token.slice(0,12)}... (user: ${t.userId}, created: ${new Date(t.created).toLocaleString()})`;
+            const btn = document.createElement('button');
+            btn.textContent = 'Revoke';
+            btn.onclick = async () => {
+              if (!confirm('Revoke this token?')) return;
+              const revokeRes = await fetch('/auth/revoke-token', {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: t.token })
+              });
+              const revokeResult = await revokeRes.json();
+              if (revokeRes.ok && revokeResult.success) {
+                alert('Token revoked');
+                loadDashboard();
+              } else {
+                alert(revokeResult.error || 'Failed to revoke token');
+              }
+            };
+            li.appendChild(btn);
+            list.appendChild(li);
+          });
+        }
+      } catch (e) {
+        document.getElementById('tokensList').innerHTML = '<li>Error loading tokens</li>';
+      }
+
+      // Load polls
+      const pollRes = await fetch('/polls?expired=true');
+      const pollResult = await pollRes.json();
+      const polls = (pollRes.ok && pollResult.success) ? pollResult.data : [];
       const list = document.getElementById('pollList');
       list.innerHTML = '';
 
@@ -80,9 +123,8 @@
     window.onload = loadDashboard;
     document.getElementById('openRegister').onclick = () => {
       const token = localStorage.getItem('adminToken');
-        if (!token) return alert('Admin token missing. Please login as admin.');
-        // open protected register page with token in query string
-        window.location.href = `/register.html?adminToken=${encodeURIComponent(token)}`;
+      if (!token) return alert('Admin token missing. Please login as admin.');
+      window.location.href = `/register.html?adminToken=${encodeURIComponent(token)}`;
     };
 
       // Token management

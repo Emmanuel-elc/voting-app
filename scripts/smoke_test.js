@@ -4,13 +4,15 @@ const http = require('http');
 function readJSON(path){ return JSON.parse(fs.readFileSync(path,'utf8')); }
 function request(options, body){
   return new Promise((resolve, reject)=>{
+    // ensure IPv4 loopback
+    options.hostname = options.hostname === 'localhost' ? '127.0.0.1' : options.hostname;
     const req = http.request(options, res=>{
       let d=''; res.on('data',c=>d+=c); res.on('end',()=>{
         let parsed = null; try{ parsed = JSON.parse(d); } catch(e){}
         resolve({ status: res.statusCode, body: parsed || d });
       });
     });
-    req.on('error', reject);
+    req.on('error', e=> resolve({ error: (e && e.stack) ? e.stack : String(e) }));
     if (body) req.write(JSON.stringify(body));
     req.end();
   });
