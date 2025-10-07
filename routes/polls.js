@@ -4,6 +4,24 @@ const path = require('path');
 const router = express.Router();
 
 const pollsFile = path.join(__dirname, '..', 'data', 'polls.json');
+const { validateToken } = require('../lib/adminSessions');
+
+function toCSV(poll) {
+  // If poll has candidates array, include candidate rows; otherwise include option rows
+  const rows = [];
+  if (poll.candidates && Array.isArray(poll.candidates)) {
+    rows.push(['Candidate','Votes']);
+    for (const c of poll.candidates) {
+      const name = c.name;
+      const votes = (poll.options && poll.options[name]) ? poll.options[name] : 0;
+      rows.push([name, votes]);
+    }
+  } else {
+    rows.push(['Option','Votes']);
+    for (const [opt, v] of Object.entries(poll.options || {})) rows.push([opt, v]);
+  }
+  return rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+}
 
 // Load existing polls
 function loadPolls() {
@@ -111,6 +129,24 @@ router.delete('/:id', (req, res) => {
 
   savePolls(polls);
   res.json({ message: 'Poll deleted' });
+});
+
+// Export poll results as CSV (admin only)
+router.get('/:id/export', (req, res) => {
+  const auth = req.headers && (req.headers.authorization || req.headers.Authorization);
+  if (!auth || !auth.startsWith('Bearer ')) return res.status(403).send('Admin token required');
+  const token = auth.slice(7);
+  const userId = validateToken(token);
+  if (!userId) return res.status(403).send('Invalid admin token');
+
+  const polls = loadPolls();
+  const poll = polls.find(p => p.id === req.params.id);
+  if (!poll) return res.status(404).send('Poll not found');
+
+  const csv = toCSV(poll);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="results-${poll.id}.csv"`);
+  res.send(csv);
 });
 
 module.exports = router;

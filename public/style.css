@@ -1,105 +1,135 @@
-/* Voting App - Responsive stylesheet
-   Matches the HTML in public/*.html and provides accessible defaults
-*/
+/* ------------------------------------------------------------
+   Voting App — Refined UI stylesheet
+   Goals: modern typography, consistent spacing, accessible color
+   palette, refined UI components (buttons, forms, cards),
+   polished candidate grid and responsive layout.
+   ------------------------------------------------------------ */
 
 :root{
-  --bg: #f5f7fb;
-  --card: #ffffff;
+  --bg-1: #f6f8fb;
+  --bg-2: #eef4fb;
+  --surface: #ffffff;
+  --muted: #6b7280;
+  --text: #0f1724;
   --primary: #0b66d0;
   --primary-600: #085ab8;
   --accent: #17a2b8;
   --danger: #e03131;
-  --muted: #6b7280;
-  --radius: 12px;
-  --max-width: 1100px;
-  --gap: 1rem;
   --glass: rgba(255,255,255,0.85);
+  --radius-sm: 8px;
+  --radius: 14px;
+  --shadow-1: 0 6px 24px rgba(12,20,40,0.06);
+  --shadow-2: 0 10px 40px rgba(12,20,40,0.08);
+  --max-width: 1200px;
+  --gap: 1rem;
 }
 
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: linear-gradient(180deg,var(--bg), #eef3fb);
-  color: #0f1724;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   -webkit-font-smoothing:antialiased;
-  margin:0; padding:2rem 1rem;
+  -moz-osx-font-smoothing:grayscale;
+  background: linear-gradient(180deg,var(--bg-1), var(--bg-2));
+  color:var(--text);
+  margin:0;padding:2rem 1.25rem;
 }
 
+/* Layout container */
 .site{
   max-width:var(--max-width);
   margin:0 auto;
   display:grid;
-  grid-template-columns: 1fr 340px;
-  gap:var(--gap);
+  grid-template-columns: 1fr 360px;
+  gap:calc(var(--gap) * 1.25);
   align-items:start;
 }
 
+/* Cards */
 .main-card, .side-card{
-  background:var(--card);
+  background:var(--surface);
   border-radius:var(--radius);
   padding:1.25rem;
-  box-shadow:0 6px 22px rgba(12,15,25,0.06);
+  box-shadow:var(--shadow-1);
 }
 
-h1{font-size:1.4rem;margin:0 0 .5rem;color:var(--primary)}
+/* Headers */
+header.app-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+.logo{display:flex;align-items:center;gap:.75rem}
+.logo h1{font-size:1.25rem;margin:0}
+.top-controls{display:flex;gap:.5rem;align-items:center}
+
+h1{font-size:1.5rem;margin:0 0 .5rem;color:var(--primary)}
 h2{font-size:1.05rem;margin:0 0 .75rem;color:#0b2b4a}
 
-.hidden{display:none}
+.muted{color:var(--muted)}
+.center{text-align:center}
 
-.auth-grid{display:flex;flex-direction:column;gap:.75rem}
-label{font-size:.95rem;color:var(--muted);margin-bottom:.25rem;display:block}
+/* Forms */
+label{display:block;font-size:.95rem;color:var(--muted);margin-bottom:.35rem}
 input[type=text],input[type=password],textarea,select{
-  width:100%;padding:.7rem;border:1px solid #e6e9ef;border-radius:8px;background:#fbfdff;font-size:0.975rem
+  width:100%;padding:.75rem;border:1px solid rgba(15,23,36,0.06);border-radius:10px;background:#fbfdff;font-size:0.98rem;color:var(--text);
+  transition:box-shadow .15s ease, border-color .15s ease;
 }
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 6px 20px rgba(11,102,208,0.06)}
 
-button{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem .9rem;border-radius:8px;border:0;background:var(--primary);color:#fff;cursor:pointer;font-weight:600}
-button.secondary{background:#eef4fb;color:var(--primary)}
-button.ghost{background:transparent;border:1px solid #e6e9ef;color:var(--primary)}
-button.danger{background:var(--danger)}
-button:active{transform:translateY(1px)}
-
-.form-row{display:flex;gap:.5rem}
+.form-row{display:flex;gap:.75rem}
 .form-row > *{flex:1}
 
-.poll-list{display:flex;flex-direction:column;gap:.75rem;padding:0;margin:0;list-style:none}
-.poll-item{display:flex;flex-direction:column;padding:.85rem;border-radius:10px;background:var(--glass);border:1px solid rgba(12,15,25,0.03)}
-.poll-item .meta{font-size:.9rem;color:var(--muted);margin-bottom:.5rem}
+/* Buttons */
+button{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem .95rem;border-radius:10px;border:0;background:var(--primary);color:#fff;cursor:pointer;font-weight:600;font-size:0.98rem}
+button.secondary{background:transparent;color:var(--primary);border:1px solid rgba(11,102,208,0.12)}
+button.ghost{background:transparent;border:1px solid rgba(15,23,36,0.06);color:var(--text)}
+button.danger{background:var(--danger)}
+button:active{transform:translateY(1px)}
+button:focus{box-shadow:0 0 0 4px rgba(11,102,208,0.12);outline:none}
 
-.options{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem}
-.option{flex:1 1 140px;padding:.6rem;border-radius:8px;border:1px solid #e9eef6;background:#fff;display:flex;align-items:center}
-.option input{margin-right:.5rem}
+.btn-row{display:flex;gap:.5rem;flex-wrap:wrap}
 
-.chart-wrap{margin-top:1rem}
+/* Poll list */
+.poll-list{display:flex;flex-direction:column;gap:1rem;padding:0;margin:0;list-style:none}
+.poll-item{display:flex;flex-direction:column;padding:1rem;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,252,255,0.98));border:1px solid rgba(12,15,25,0.04);box-shadow:var(--shadow-1)}
+.poll-item .meta{font-size:.92rem;color:var(--muted);margin-bottom:.5rem}
+.poll-item .actions{display:flex;gap:.5rem;margin-top:.5rem}
 
-.side-card .section{margin-bottom:1rem}
+.options{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:.5rem}
+.option{flex:1 1 140px;padding:.7rem;border-radius:10px;border:1px solid rgba(15,23,36,0.04);background:#fff;display:flex;align-items:center}
+.option input{margin-right:.6rem}
 
-/* Header & controls */
-.top-controls{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
-.brand{display:flex;align-items:center;gap:.5rem}
-.brand h1{margin:0}
+/* Candidate grid */
+.candidates-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:1rem}
+.candidate-card{background:linear-gradient(180deg, #fff, #fbfdff);border-radius:12px;padding:0.9rem;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid rgba(15,23,36,0.04);box-shadow:var(--shadow-1);transition:transform .12s ease, box-shadow .12s ease}
+.candidate-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-2)}
+.candidate-card img{width:104px;height:104px;border-radius:12px;object-fit:cover;margin-bottom:.6rem;border:1px solid rgba(15,23,36,0.04)}
+.candidate-name{font-weight:700;margin-bottom:.25rem;font-size:1rem}
+.candidate-sub{color:var(--muted);font-size:.9rem}
+.candidate-card input[type="radio"]{transform:scale(1.05);margin-top:.5rem}
 
-.muted{color:var(--muted)}
+.avatar{width:48px;height:48px;border-radius:10px;object-fit:cover}
 
-/* Register / admin pages */
-.register-form{max-width:600px;margin:0 auto}
+/* Admin register form */
+.admin-register{display:grid;gap:.5rem}
+
+/* Results / charts */
+#resultsContainer{padding:1rem}
+
+/* Tiny utilities */
+.hidden{display:none}
 .message{margin-top:1rem}
 .message.success{color:green}
 .message.error{color:var(--danger)}
 
-/* Results and charts */
-#resultsContainer{padding:1rem}
+footer{margin-top:2rem;text-align:center;color:var(--muted);font-size:.92rem}
 
-/* small helper visuals */
-.avatar{width:44px;height:44px;border-radius:8px;object-fit:cover}
-
-footer{margin-top:2rem;text-align:center;color:var(--muted);font-size:.9rem}
-
-/* Responsive tweaks */
+/* Responsive behavior */
 @media(max-width:980px){
   .site{grid-template-columns:1fr;}
   .side-card{order:-1}
   body{padding:1rem}
+}
+
+@media(max-width:720px){
+  .candidates-grid{grid-template-columns:repeat(2,1fr)}
 }
 
 @media(max-width:480px){
@@ -107,10 +137,14 @@ footer{margin-top:2rem;text-align:center;color:var(--muted);font-size:.9rem}
   button{width:100%}
 }
 
-/* Utility */
-.btn-row{display:flex;gap:.5rem}
-.center{text-align:center}
-
-/* ensure charts take available width */
+/* Ensure charts / canvases scale nicely */
 canvas{max-width:100%;height:auto}
+
+/* Accessibility helpers */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Small visual niceties */
+.pill{display:inline-block;padding:.25rem .6rem;border-radius:999px;background:#f1f5f9;color:var(--muted);font-size:.85rem}
+
+/* File end */
 

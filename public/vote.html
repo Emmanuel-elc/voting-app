@@ -65,14 +65,17 @@
 
       html += `
         <form id="voteForm">
-          ${poll.candidates.map(c => `
-            <label>
-              <input type="radio" name="option" value="${c.name}" />
-              <img src="/images/${c.photo}" alt="${c.name}" width="80" /><br/>
-              ${c.name}
-            </label><br/>
-          `).join('')}
-          <button type="submit">Submit Vote</button>
+          <div class="candidates-grid">
+            ${poll.candidates.map(c => `
+              <label class="candidate-card">
+                <img src="/images/${c.photo}" alt="${c.name}" />
+                <div class="candidate-name">${c.name}</div>
+                <div class="candidate-sub">${c.party || ''}</div>
+                <input type="radio" name="option" value="${c.name}" />
+              </label>
+            `).join('')}
+          </div>
+          <div style="margin-top:1rem"><button type="submit">Submit Vote</button></div>
         </form>
       `;
       container.innerHTML = html;

@@ -37,6 +37,13 @@
       <button type="submit">Create Poll</button>
     </form>
     <hr />
+    <h3>Quick register voter</h3>
+    <form id="adminRegisterInline" class="admin-register">
+      <input type="text" id="inlineVoterId" placeholder="Voter ID" required />
+      <input type="text" id="inlineVoterName" placeholder="Full name" required />
+      <input type="password" id="inlineVoterPassword" placeholder="Password" required />
+      <button type="submit">Register Voter</button>
+    </form>
   </div>
 
   <h2>📋 Polls</h2>
@@ -171,6 +178,24 @@
             loadPolls();
           };
           li.appendChild(btn);
+          const dl = document.createElement('button');
+          dl.textContent = '⬇️ CSV';
+          dl.onclick = async () => {
+            const token = localStorage.getItem('adminToken');
+            if (!token) return alert('Admin token required');
+            const resp = await fetch(`/polls/${poll.id}/export`, { headers: { Authorization: 'Bearer ' + token } });
+            if (!resp.ok) return alert('Failed to export CSV');
+            const blob = await resp.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `results-${poll.id}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          };
+          li.appendChild(dl);
         }
       });
     }
@@ -184,12 +209,26 @@
       if (alreadyVoted) {
         html += '<p><strong>You already voted.</strong></p>';
       } else {
-        html += `<form id="voteForm">
-          ${Object.keys(poll.options).map(opt => `
-            <label><input type="radio" name="option" value="${opt}"> ${opt}</label><br/>
-          `).join('')}
-          <button type="submit">Vote</button>
-        </form>`;
+        if (poll.candidates && Array.isArray(poll.candidates)) {
+          html += `<form id="voteForm"><div class="candidates-grid">
+            ${poll.candidates.map(c => `
+              <label class="candidate-card">
+                <img src="/images/${c.photo}" alt="${c.name}" />
+                <div class="candidate-name">${c.name}</div>
+                <div class="candidate-sub">${c.party || ''}</div>
+                <input type="radio" name="option" value="${c.name}">
+              </label>
+            `).join('')}
+          </div>
+          <div style="margin-top:1rem"><button type="submit">Vote</button></div></form>`;
+        } else {
+          html += `<form id="voteForm">
+            ${Object.keys(poll.options).map(opt => `
+              <label><input type="radio" name="option" value="${opt}"> ${opt}</label><br/>
+            `).join('')}
+            <button type="submit">Vote</button>
+          </form>`;
+        }
       }
 
       html += `<canvas id="resultsChart" width="400" height="200"></canvas>`;
@@ -247,6 +286,23 @@
 
     loadUser();
     if (currentUser) showUI();
+    // inline admin register handler
+    const inlineForm = document.getElementById('adminRegisterInline');
+    if (inlineForm) {
+      inlineForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('inlineVoterId').value.trim();
+        const name = document.getElementById('inlineVoterName').value.trim();
+        const password = document.getElementById('inlineVoterPassword').value;
+        const adminToken = localStorage.getItem('adminToken');
+        const payload = { id, name, password };
+        if (adminToken) payload.adminToken = adminToken;
+        const res = await fetch('/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const result = await res.json();
+        if (res.ok && result.success) { alert('Voter registered'); inlineForm.reset(); loadPolls(); }
+        else alert(result.error || 'Registration failed');
+      };
+    }
   </script>
 </body>
 </html>

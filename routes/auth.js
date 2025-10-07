@@ -19,7 +19,21 @@ function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-const { validateToken, listTokens, revokeToken } = require('../lib/adminSessions');
+const { validateToken, listTokens, revokeToken, createTokenWithTTL } = require('../lib/adminSessions');
+// Create a new admin token (admin only)
+router.post('/create-token', (req, res) => {
+  const adminToken = getTokenFromReq(req);
+  const userId = adminToken ? validateToken(adminToken) : null;
+  if (!userId) return res.status(403).json({ success: false, error: 'Admin token required' });
+  const { forUserId, ttlMs } = req.body;
+  if (!forUserId) return res.status(400).json({ success: false, error: 'Missing forUserId' });
+  try {
+    const token = createTokenWithTTL(forUserId, ttlMs || 1000*60*60*24*7);
+    res.json({ success: true, token });
+  } catch (e) {
+    res.status(500).json({ success: false, error: 'Failed to create token' });
+  }
+});
 // List all admin tokens (admin only)
 router.get('/tokens', (req, res) => {
   const token = getTokenFromReq(req);
@@ -49,13 +63,21 @@ router.post('/revoke-token', (req, res) => {
 });
 
 function getTokenFromReq(req) {
-  // Try Authorization header first (Bearer <token>)
-  const auth = req.headers && req.headers.authorization;
+  // Only accept Authorization: Bearer <token> for admin APIs
+  const auth = req.headers && (req.headers.authorization || req.headers.Authorization);
   if (auth && auth.startsWith('Bearer ')) return auth.slice(7);
-  // fallback to query or body
-  if (req.query && req.query.adminToken) return req.query.adminToken;
-  if (req.body && req.body.adminToken) return req.body.adminToken;
   return null;
+}
+
+// Simple audit logger for admin actions
+function audit(action, details) {
+  try {
+    const logLine = JSON.stringify({ time: new Date().toISOString(), action, details }) + '\n';
+    const auditPath = path.join(__dirname, '..', 'data', 'audit.log');
+    fs.appendFileSync(auditPath, logLine);
+  } catch (e) {
+    console.error('Failed to write audit log', e);
+  }
 }
 
 // Login: expects { id, password }
@@ -138,6 +160,30 @@ router.get('/voters', (req, res) => {
   } catch (e) {
     console.error('Failed to load voters', e);
     res.status(500).json({ success: false, error: 'Failed to load voters' });
+  }
+});
+
+// Reset a user's password (admin only) - expects { id, newPassword }
+router.post('/reset-password', async (req, res) => {
+  const token = getTokenFromReq(req);
+  const userId = token ? validateToken(token) : null;
+  if (!userId) return res.status(403).json({ success: false, error: 'Admin token required' });
+
+  const { id, newPassword } = req.body;
+  if (!id || !newPassword) return res.status(400).json({ success: false, error: 'id and newPassword required' });
+
+  try {
+    const users = loadUsers();
+    const u = users.find(u2 => u2.id === id);
+    if (!u) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    u.password = hashed;
+    saveUsers(users);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Failed to reset password', e);
+    res.status(500).json({ success: false, error: 'Failed to reset password' });
   }
 });
 

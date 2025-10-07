@@ -28,9 +28,15 @@
     <a href="/results"><button>View & Export Results</button></a>
   </div>
 
+
   <section class="side-card" style="margin-top:1rem;">
     <h3>Admin Tokens</h3>
-    <p class="muted">List of active admin tokens (you can revoke tokens here).</p>
+    <p class="muted">List of active admin tokens (you can revoke or create tokens here).</p>
+    <form id="createTokenForm" style="margin-bottom:1rem;">
+      <label>User ID for new token: <input type="text" id="newTokenUserId" required /></label>
+      <label>Expiry (days): <input type="number" id="newTokenDays" min="1" value="7" /></label>
+      <button type="submit">Create Admin Token</button>
+    </form>
     <div id="tokensSection">
       <p id="tokensLoading">Loading tokens…</p>
       <ul id="tokensList"></ul>
@@ -38,6 +44,16 @@
   </section>
 
   <h2>Total Registered Voters: <span id="voterCount">...</span></h2>
+
+  <section class="side-card" style="margin-top:1rem;">
+    <h3>Reset Voter Password</h3>
+    <form id="resetPasswordForm">
+      <label>User ID: <input type="text" id="resetUserId" required /></label>
+      <label>New Password: <input type="password" id="resetNewPassword" required /></label>
+      <button type="submit">Reset Password</button>
+    </form>
+    <p class="muted">This action requires an admin token and updates the user's password immediately.</p>
+  </section>
 
   <h2>All Polls:</h2>
   <ul id="pollList"></ul>
@@ -71,7 +87,7 @@
         } else {
           tokens.forEach(t => {
             const li = document.createElement('li');
-            li.textContent = `${t.token.slice(0,12)}... (user: ${t.userId}, created: ${new Date(t.created).toLocaleString()})`;
+            li.textContent = `${t.token.slice(0,12)}... (user: ${t.userId}, created: ${new Date(t.created).toLocaleString()}${t.expiresAt ? ', expires: ' + new Date(t.expiresAt).toLocaleDateString() : ''})`;
             const btn = document.createElement('button');
             btn.textContent = 'Revoke';
             btn.onclick = async () => {
@@ -97,6 +113,27 @@
         document.getElementById('tokensList').innerHTML = '<li>Error loading tokens</li>';
       }
 
+      // Create token form handler
+      document.getElementById('createTokenForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const forUserId = document.getElementById('newTokenUserId').value.trim();
+        const days = Number(document.getElementById('newTokenDays').value) || 7;
+        const ttlMs = days * 24 * 60 * 60 * 1000;
+        const res = await fetch('/auth/create-token', {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ forUserId, ttlMs })
+        });
+        const result = await res.json();
+        if (res.ok && result.success) {
+          alert('Token created: ' + result.token.slice(0,12) + '...');
+          e.target.reset();
+          loadDashboard();
+        } else {
+          alert(result.error || 'Failed to create token');
+        }
+      };
+
       // Load polls
       const pollRes = await fetch('/polls?expired=true');
       const pollResult = await pollRes.json();
@@ -116,6 +153,27 @@
         link.textContent = poll.question;
         link.target = '_blank';
         li.appendChild(link);
+
+        const dl = document.createElement('button');
+        dl.textContent = '⬇️ CSV';
+        dl.style.marginLeft = '0.5rem';
+        dl.onclick = async () => {
+          const token = localStorage.getItem('adminToken');
+          if (!token) return alert('Admin token required');
+          const resp = await fetch(`/polls/${poll.id}/export`, { headers: { Authorization: 'Bearer ' + token } });
+          if (!resp.ok) return alert('Failed to export CSV');
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `results-${poll.id}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        };
+        li.appendChild(dl);
+
         list.appendChild(li);
       });
     }
@@ -125,6 +183,25 @@
       const token = localStorage.getItem('adminToken');
       if (!token) return alert('Admin token missing. Please login as admin.');
       window.location.href = `/register.html?adminToken=${encodeURIComponent(token)}`;
+    };
+
+    // Password reset handler
+    document.getElementById('resetPasswordForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('resetUserId').value.trim();
+      const newPassword = document.getElementById('resetNewPassword').value;
+      const token = localStorage.getItem('adminToken');
+      if (!token) return alert('Admin token required');
+      const res = await fetch('/auth/reset-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ id, newPassword })
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        alert('Password reset');
+        e.target.reset();
+      } else {
+        alert(result.error || 'Failed to reset password');
+      }
     };
 
       // Token management
